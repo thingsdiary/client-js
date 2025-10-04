@@ -1,0 +1,33 @@
+{
+  "name": "@thingsdiary/client",
+  "version": "0.0.1",
+  "description": "Official TypeScript/JavaScript client for thingsdiary cloud API",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build",
+    "test": "vitest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/thingsdiary/client-js.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/thingsdiary/client-js/issues"
+  },
+  "homepage": "https://github.com/thingsdiary/client-js#readme",
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    "@types/node": "^24.7.0",
+    "typescript": "^5.9.3"
+  }
+}
