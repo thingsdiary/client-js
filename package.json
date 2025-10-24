@@ -2,11 +2,23 @@
   "name": "@thingsdiary/client",
   "version": "0.0.1",
   "description": "Official TypeScript/JavaScript client for thingsdiary cloud API",
-  "main": "dist/index.js",
+  "type": "module",
+  "main": "dist/index.cjs.js",
+  "module": "dist/index.es.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.es.js",
+      "require": "./dist/index.cjs.js"
+    }
+  },
   "scripts": {
-    "build": "tsc",
-    "prepublishOnly": "npm run build",
-    "test": "vitest"
+    "build": "vite build && tsc --emitDeclarationOnly && tsc-alias",
+    "build:prod": "NODE_ENV=production npm run build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prepublishOnly": "npm run build:prod"
   },
   "repository": {
     "type": "git",
@@ -15,7 +27,6 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
   "bugs": {
     "url": "https://github.com/thingsdiary/client-js/issues"
   },
@@ -26,8 +37,18 @@
   "publishConfig": {
     "access": "public"
   },
+  "dependencies": {
+    "@noble/ciphers": "^2.0.1",
+    "@noble/curves": "^2.0.1",
+    "@noble/hashes": "^2.0.1",
+    "@stablelib/nacl": "^2.0.1"
+  },
   "devDependencies": {
     "@types/node": "^24.7.0",
-    "typescript": "^5.9.3"
+    "tsc-alias": "^1.8.16",
+    "typescript": "^5.9.3",
+    "vite": "^7.1.9",
+    "vite-tsconfig-paths": "^5.1.4",
+    "vitest": "^3.2.4"
   }
 }
