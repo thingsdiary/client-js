@@ -9,7 +9,7 @@ describe("Auth resource", () => {
     const seedPhrase = "test seed phrase for user " + randomUUID();
     const credentials = deriveCredentials(seedPhrase);
 
-    const httpClient = new HttpClient("http://127.0.0.1:8080/api/v1");
+    const httpClient = new HttpClient("http://127.0.0.1:8080/api");
     const email = `${randomUUID()}@thingsdiary.io`;
 
     // Register new user

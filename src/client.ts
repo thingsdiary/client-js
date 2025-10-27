@@ -48,7 +48,7 @@ export interface CreateClientOptions {
 
 export function createClient(options: CreateClientOptions): Client {
   return new Client({
-    baseUrl: options.baseUrl ?? "https://cloud.thingsdiary.com/api/v1",
+    baseUrl: options.baseUrl ?? "https://cloud.thingsdiary.com/api",
     credentials: options.credentials,
     token: options.token,
   });

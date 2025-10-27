@@ -36,7 +36,7 @@ export class KeysAPI {
 
   async list(diaryId: string): Promise<EncryptionKey[]> {
     const response = await this.http.request<GetKeyResponse>(
-      `/diaries/${diaryId}/keys`,
+      `/v1/diaries/${diaryId}/keys`,
       {
         method: "GET",
       }

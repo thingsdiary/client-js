@@ -107,7 +107,7 @@ export class TemplatesAPI {
     );
 
     const response = await this.http.request<PutTemplateResponse>(
-      `/diaries/${diaryId}/templates/${templateId}`,
+      `/v1/diaries/${diaryId}/templates/${templateId}`,
       {
         method: "PUT",
         body: request,
@@ -120,7 +120,7 @@ export class TemplatesAPI {
 
   async delete(diaryId: string, templateId: string): Promise<void> {
     await this.http.request<void>(
-      `/diaries/${diaryId}/templates/${templateId}`,
+      `/v1/diaries/${diaryId}/templates/${templateId}`,
       {
         method: "DELETE",
       }
@@ -136,7 +136,7 @@ export class TemplatesAPI {
 
     const query = nextPageToken ? `?next_page_token=${nextPageToken}` : "";
     const response = await this.http.request<GetTemplatesResponse>(
-      `/diaries/${diaryId}/templates${query}`,
+      `/v1/diaries/${diaryId}/templates${query}`,
       { method: "GET" }
     );
 
@@ -157,7 +157,7 @@ export class TemplatesAPI {
     const diaryKey = encryptionKey.value;
 
     const response = await this.http.request<GetTemplateResponse>(
-      `/diaries/${diaryId}/templates/${templateId}`,
+      `/v1/diaries/${diaryId}/templates/${templateId}`,
       { method: "GET" }
     );
 
