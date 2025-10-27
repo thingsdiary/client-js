@@ -120,7 +120,7 @@ export class TopicsAPI {
     );
 
     const response = await this.http.request<PutTopicResponse>(
-      `/diaries/${diaryId}/topics/${topicId}`,
+      `/v1/diaries/${diaryId}/topics/${topicId}`,
       {
         method: "PUT",
         body: request,
@@ -139,7 +139,7 @@ export class TopicsAPI {
     const deleteEntries = options?.deleteEntries ?? false;
     const query = deleteEntries ? "?delete_entries=true" : "";
     await this.http.request<void>(
-      `/diaries/${diaryId}/topics/${topicId}${query}`,
+      `/v1/diaries/${diaryId}/topics/${topicId}${query}`,
       {
         method: "DELETE",
       }
@@ -155,7 +155,7 @@ export class TopicsAPI {
 
     const query = nextPageToken ? `?next_page_token=${nextPageToken}` : "";
     const response = await this.http.request<GetTopicsResponse>(
-      `/diaries/${diaryId}/topics${query}`,
+      `/v1/diaries/${diaryId}/topics${query}`,
       { method: "GET" }
     );
 
@@ -176,7 +176,7 @@ export class TopicsAPI {
     const diaryKey = encryptionKey.value;
 
     const response = await this.http.request<GetTopicResponse>(
-      `/diaries/${diaryId}/topics/${topicId}`,
+      `/v1/diaries/${diaryId}/topics/${topicId}`,
       { method: "GET" }
     );
 

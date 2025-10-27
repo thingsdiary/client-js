@@ -1,10 +1,10 @@
-import { Credentials } from "./crypto/credentials";
-import { signBytes } from "./crypto/signature";
-import { HttpClient } from "./http";
-import { base64ToBytes } from "./utils/encoding";
+import { Credentials } from "@/crypto/credentials";
+import { signBytes } from "@/crypto/signature";
+import { HttpClient } from "@/http";
+import { base64ToBytes } from "@/utils/encoding";
 
 const defaultHttpClient = new HttpClient(
-  "https://cloud.thingsdiary.com/api/v1"
+  "https://cloud.thingsdiary.com/api"
 );
 
 export interface RegisterResponse {
@@ -35,7 +35,7 @@ export async function register(
 
   const client = httpClient ?? defaultHttpClient;
 
-  const response = await client.request<RegisterResponse>("/auth/register", {
+  const response = await client.request<RegisterResponse>("/v1/auth/register", {
     method: "POST",
     body,
   });
@@ -52,7 +52,7 @@ export async function login(
   const client = httpClient ?? defaultHttpClient;
 
   // Step 1: Login to get challenge
-  const loginResp = await client.request<LoginResponse>("/auth/login", {
+  const loginResp = await client.request<LoginResponse>("/v1/auth/login", {
     method: "POST",
     body: { login, password },
   });
@@ -63,7 +63,7 @@ export async function login(
 
   // Step 3: Verify challenge
   const verifyResp = await client.request<LoginVerifyResponse>(
-    "/auth/login/verify",
+    "/v1/auth/login/verify",
     {
       method: "POST",
       body: {

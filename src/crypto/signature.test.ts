@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { signBytes, verifySignature } from "./signature";
+import { signBytes, verifySignature } from "@/crypto/signature";
 import { ed25519 } from "@noble/curves/ed25519.js";
 import { randomBytes } from "@noble/ciphers/utils.js";
 

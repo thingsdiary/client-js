@@ -107,7 +107,7 @@ export class DiariesAPI {
       this.credentials.signingPrivateKey
     );
 
-    const response = await this.http.request<CreateDiaryResponse>("/diaries", {
+    const response = await this.http.request<CreateDiaryResponse>("/v1/diaries", {
       method: "POST",
       body: request,
       headers: { "X-Signature": bytesToBase64(signature) },
@@ -150,7 +150,7 @@ export class DiariesAPI {
     );
 
     const response = await this.http.request<PutDiaryResponse>(
-      `/diaries/${diaryId}`,
+      `/v1/diaries/${diaryId}`,
       {
         method: "PUT",
         body: request,
@@ -162,13 +162,13 @@ export class DiariesAPI {
   }
 
   async delete(diaryId: string): Promise<void> {
-    await this.http.request<void>(`/diaries/${diaryId}`, {
+    await this.http.request<void>(`/v1/diaries/${diaryId}`, {
       method: "DELETE",
     });
   }
 
   async list(): Promise<Diary[]> {
-    const response = await this.http.request<GetDiariesResponse>("/diaries", {
+    const response = await this.http.request<GetDiariesResponse>("/v1/diaries", {
       method: "GET",
     });
 
@@ -183,7 +183,7 @@ export class DiariesAPI {
 
   async get(diaryId: string): Promise<Diary> {
     const response = await this.http.request<GetDiaryResponse>(
-      `/diaries/${diaryId}`,
+      `/v1/diaries/${diaryId}`,
       { method: "GET" }
     );
 

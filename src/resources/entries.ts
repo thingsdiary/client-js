@@ -129,7 +129,7 @@ export class EntriesAPI {
     );
 
     const response = await this.http.request<PutEntryResponse>(
-      `/diaries/${diaryId}/entries/${entryId}`,
+      `/v1/diaries/${diaryId}/entries/${entryId}`,
       {
         method: "PUT",
         body: request,
@@ -141,7 +141,7 @@ export class EntriesAPI {
   }
 
   async delete(diaryId: string, entryId: string): Promise<void> {
-    await this.http.request<void>(`/diaries/${diaryId}/entries/${entryId}`, {
+    await this.http.request<void>(`/v1/diaries/${diaryId}/entries/${entryId}`, {
       method: "DELETE",
     });
   }
@@ -155,7 +155,7 @@ export class EntriesAPI {
 
     const query = nextPageToken ? `?next_page_token=${nextPageToken}` : "";
     const response = await this.http.request<GetEntriesResponse>(
-      `/diaries/${diaryId}/entries${query}`,
+      `/v1/diaries/${diaryId}/entries${query}`,
       { method: "GET" }
     );
 
@@ -176,7 +176,7 @@ export class EntriesAPI {
     const diaryKey = encryptionKey.value;
 
     const response = await this.http.request<GetEntryResponse>(
-      `/diaries/${diaryId}/entries/${entryId}`,
+      `/v1/diaries/${diaryId}/entries/${entryId}`,
       { method: "GET" }
     );
 

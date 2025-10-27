@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bytesToBase64, base64ToBytes } from "./encoding";
+import { bytesToBase64, base64ToBytes } from "@/utils/encoding";
 
 describe("Encoding utilities", () => {
   // Golden test data - known base64 encodings to verify compatibility
