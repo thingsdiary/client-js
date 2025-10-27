@@ -109,16 +109,16 @@ export class EntriesAPI {
       topic_id: params.topic_id,
       encryption: {
         diary_key_id: encryptionKey.id,
-        encrypted_key_nonce: Array.from(keyNonce),
-        encrypted_key_data: Array.from(encryptedEntityKey),
+        encrypted_key_nonce: bytesToBase64(keyNonce),
+        encrypted_key_data: bytesToBase64(encryptedEntityKey),
       },
       details: {
-        nonce: Array.from(detailsNonce),
-        data: Array.from(encryptedDetails),
+        nonce: bytesToBase64(detailsNonce),
+        data: bytesToBase64(encryptedDetails),
       },
       preview: {
-        nonce: Array.from(previewNonce),
-        data: Array.from(encryptedPreview),
+        nonce: bytesToBase64(previewNonce),
+        data: bytesToBase64(encryptedPreview),
       },
     };
 

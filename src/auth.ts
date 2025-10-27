@@ -1,7 +1,7 @@
 import { Credentials } from "@/crypto/credentials";
 import { signBytes } from "@/crypto/signature";
 import { HttpClient } from "@/http";
-import { base64ToBytes } from "@/utils/encoding";
+import { base64ToBytes, bytesToBase64 } from "@/utils/encoding";
 
 const defaultHttpClient = new HttpClient(
   "https://cloud.thingsdiary.com/api"
@@ -29,8 +29,8 @@ export async function register(
   const body = {
     login,
     password,
-    signature_public_key: Array.from(credentials.signingPublicKey),
-    encryption_public_key: Array.from(credentials.encryptionPublicKey),
+    signature_public_key: bytesToBase64(credentials.signingPublicKey),
+    encryption_public_key: bytesToBase64(credentials.encryptionPublicKey),
   };
 
   const client = httpClient ?? defaultHttpClient;
@@ -68,7 +68,7 @@ export async function login(
       method: "POST",
       body: {
         challenge_id: loginResp.challenge_id,
-        signed_nonce: Array.from(signedNonce),
+        signed_nonce: bytesToBase64(signedNonce),
       },
     }
   );

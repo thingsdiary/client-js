@@ -90,14 +90,14 @@ export class DiariesAPI {
     );
 
     const request = {
-      encrypted_diary_key: Array.from(encryptedDiaryKey),
+      encrypted_diary_key: bytesToBase64(encryptedDiaryKey),
       details: {
-        nonce: Array.from(detailsNonce),
-        data: Array.from(encryptedDetails),
+        nonce: bytesToBase64(detailsNonce),
+        data: bytesToBase64(encryptedDetails),
       },
       encryption: {
-        encrypted_key_nonce: Array.from(keyNonce),
-        encrypted_key_data: Array.from(encryptedEntityKey),
+        encrypted_key_nonce: bytesToBase64(keyNonce),
+        encrypted_key_data: bytesToBase64(encryptedEntityKey),
       },
     };
 
@@ -133,13 +133,13 @@ export class DiariesAPI {
     const request = {
       version: params.version ?? NewVersion(),
       details: {
-        nonce: Array.from(detailsNonce),
-        data: Array.from(encryptedDetails),
+        nonce: bytesToBase64(detailsNonce),
+        data: bytesToBase64(encryptedDetails),
       },
       encryption: {
         diary_key_id: encryptionKey.id,
-        encrypted_key_nonce: Array.from(keyNonce),
-        encrypted_key_data: Array.from(encryptedEntityKey),
+        encrypted_key_nonce: bytesToBase64(keyNonce),
+        encrypted_key_data: bytesToBase64(encryptedEntityKey),
       },
     };
 

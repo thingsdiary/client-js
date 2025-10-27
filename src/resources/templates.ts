@@ -91,12 +91,12 @@ export class TemplatesAPI {
       version: params.version ?? NewVersion(),
       encryption: {
         diary_key_id: encryptionKey.id,
-        encrypted_key_nonce: Array.from(keyNonce),
-        encrypted_key_data: Array.from(encryptedEntityKey),
+        encrypted_key_nonce: bytesToBase64(keyNonce),
+        encrypted_key_data: bytesToBase64(encryptedEntityKey),
       },
       details: {
-        nonce: Array.from(detailsNonce),
-        data: Array.from(encryptedDetails),
+        nonce: bytesToBase64(detailsNonce),
+        data: bytesToBase64(encryptedDetails),
       },
     };
 
