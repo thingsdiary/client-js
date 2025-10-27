@@ -1,7 +1,7 @@
-import { Credentials } from "./crypto/credentials";
-import { signBytes } from "./crypto/signature";
-import { HttpClient } from "./http";
-import { base64ToBytes } from "./utils/encoding";
+import { Credentials } from "@/crypto/credentials";
+import { signBytes } from "@/crypto/signature";
+import { HttpClient } from "@/http";
+import { base64ToBytes } from "@/utils/encoding";
 
 const defaultHttpClient = new HttpClient(
   "https://cloud.thingsdiary.com/api/v1"
