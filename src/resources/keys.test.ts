@@ -17,7 +17,7 @@ describe("Keys API", () => {
     const seedPhrase = "test seed phrase for keys " + randomUUID();
     credentials = deriveCredentials(seedPhrase);
 
-    const httpClient = new HttpClient("http://127.0.0.1:8080/api");
+    const httpClient = new HttpClient("http://127.0.0.1:8081/api");
     const email = `${randomUUID()}@thingsdiary.io`;
 
     token = await register(email, "password", credentials, httpClient);
@@ -25,7 +25,7 @@ describe("Keys API", () => {
     client = createClient({
       token,
       credentials,
-      baseUrl: "http://127.0.0.1:8080/api",
+      baseUrl: "http://127.0.0.1:8081/api",
     });
   });
 
