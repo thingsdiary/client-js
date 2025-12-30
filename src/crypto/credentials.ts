@@ -11,14 +11,30 @@ export interface Credentials {
 }
 
 /**
+ * Generate a cryptographically secure random salt
+ * @param length - Length of the salt in characters (default: 32)
+ * @returns ASCII-safe string salt
+ */
+export function generateSalt(length = 32): string {
+  const alphabet =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  const bytes = crypto.getRandomValues(new Uint8Array(length));
+  return Array.from(bytes, (b) => alphabet[b % alphabet.length]).join("");
+}
+
+/**
  * Derive cryptographic credentials from a seed phrase
  * @param seedPhrase - User's seed phrase (mnemonic or any string)
+ * @param salt - Salt for PBKDF2 (ASCII-safe string)
  * @returns Credentials object with encryption and signing key pairs
  */
-export function deriveCredentials(seedPhrase: string): Credentials {
+export function deriveCredentials(
+  seedPhrase: string,
+  salt: string
+): Credentials {
   // Derive a 32-byte seed from the seed phrase using PBKDF2
-  const seed = pbkdf2(sha256, seedPhrase, "my-app-context", {
-    c: 100_000,
+  const seed = pbkdf2(sha256, seedPhrase, salt, {
+    c: 650_000,
     dkLen: 32,
   });
 
