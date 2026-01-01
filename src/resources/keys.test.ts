@@ -2,7 +2,7 @@ import { describe, expect, it, beforeAll } from "vitest";
 import { randomUUID } from "node:crypto";
 import { HttpClient } from "@/http";
 import { register } from "@/auth";
-import { deriveCredentials } from "@/crypto/credentials";
+import { deriveCredentials, generateSalt } from "@/crypto/credentials";
 import { createClient } from "@/client";
 import { ApiError } from "@/errors";
 import type { Credentials } from "@/crypto/credentials";
@@ -15,12 +15,13 @@ describe("Keys API", () => {
 
   beforeAll(async () => {
     const seedPhrase = "test seed phrase for keys " + randomUUID();
-    credentials = deriveCredentials(seedPhrase);
+    const kdfSalt = generateSalt();
+    credentials = deriveCredentials(seedPhrase, kdfSalt);
 
     const httpClient = new HttpClient("http://127.0.0.1:8081/api");
     const email = `${randomUUID()}@thingsdiary.io`;
 
-    token = await register(email, "password", credentials, httpClient);
+    token = await register(email, "password", credentials, kdfSalt, httpClient);
 
     client = createClient({
       token,
