@@ -1,6 +1,6 @@
 import { gcm } from "@noble/ciphers/aes.js";
 import { box, openBox, generateKeyPair } from "@stablelib/nacl";
-import { sha512 } from "@noble/hashes/sha2.js";
+import { blake2b } from "@noble/hashes/blake2.js";
 import { randomBytes } from "@noble/ciphers/utils.js";
 
 /**
@@ -61,15 +61,14 @@ export function encryptWithPublicKey(
   // Generate ephemeral keypair
   const ephemeralKeyPair = generateKeyPair();
 
-  // Create nonce from ephemeral public key and recipient public key
-  // Standard NaCl sealed box uses hash(ephemeral_pk || recipient_pk) for nonce
+  // Create nonce from ephemeral public key and recipient public key.
+  // Must match golang.org/x/crypto/nacl/box.SealAnonymous/OpenAnonymous:
+  // nonce = blake2b-24(ephemeral_pk || recipient_pk)
   const combined = new Uint8Array(64);
   combined.set(ephemeralKeyPair.publicKey);
   combined.set(publicKey, 32);
 
-  // Hash the combined keys to create nonce (use first 24 bytes of SHA-512)
-  const hashBytes = sha512(combined);
-  const nonce = hashBytes.slice(0, 24);
+  const nonce = blake2b(combined, { dkLen: 24 });
 
   // Encrypt using NaCl box
   const encrypted = box(publicKey, ephemeralKeyPair.secretKey, nonce, data);
@@ -102,14 +101,12 @@ export function decryptWithPrivateKey(
   const ephemeralPublicKey = encrypted.slice(0, 32);
   const ciphertext = encrypted.slice(32);
 
-  // Recreate nonce from ephemeral public key and recipient public key
+  // Recreate nonce (must match encryptWithPublicKey and Go sealed box)
   const combined = new Uint8Array(64);
   combined.set(ephemeralPublicKey);
   combined.set(publicKey, 32);
 
-  // Hash the combined keys to create nonce (use first 24 bytes of SHA-512)
-  const hashBytes = sha512(combined);
-  const nonce = hashBytes.slice(0, 24);
+  const nonce = blake2b(combined, { dkLen: 24 });
 
   // Decrypt using NaCl box
   const plaintext = openBox(ephemeralPublicKey, privateKey, nonce, ciphertext);
