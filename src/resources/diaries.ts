@@ -215,7 +215,6 @@ export class DiariesAPI {
       id: apiDiary.id,
       title: details.title,
       description: details.description,
-      // todo: will it work with golang string?
       created_at: new Date(apiDiary.created_at),
       updated_at: new Date(apiDiary.updated_at),
       version: apiDiary.version,

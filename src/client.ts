@@ -32,12 +32,6 @@ export class Client {
     this.topics = new TopicsAPI(this.http, this.credentials, this.keys);
     this.templates = new TemplatesAPI(this.http, this.credentials, this.keys);
   }
-
-  // todo: how to build client with credentials?
-  //   static async create(seedPhrase: string, baseUrl?: string): Promise<Client> {
-  //     const credentials = await Credentials.fromSeedPhrase(seedPhrase);
-  //     return new Client({ baseUrl, credentials });
-  //   }
 }
 
 export interface CreateClientOptions {
