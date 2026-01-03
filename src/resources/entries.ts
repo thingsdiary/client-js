@@ -9,6 +9,7 @@ import { HttpClient } from "@/http";
 import { base64ToBytes, bytesToBase64 } from "@/utils/encoding";
 import { KeysAPI, EncryptionKey } from "@/resources/keys";
 import { NewVersion, Version } from "@/resources/version";
+import { EncryptedData, DiaryEncryption } from "@/resources/types";
 
 export interface CreateEntryParams {
   content: string;
@@ -45,11 +46,10 @@ export interface ApiEntry {
   deleted_at?: string;
   version: number;
 
-  // todo: to be declared
-  encryption: any;
+  encryption: DiaryEncryption;
   encryption_keys: EncryptionKey[];
-  preview: any;
-  details: any;
+  preview: EncryptedData;
+  details: EncryptedData;
 }
 
 export interface Entry {

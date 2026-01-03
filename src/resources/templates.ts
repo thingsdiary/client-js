@@ -9,6 +9,7 @@ import { HttpClient } from "@/http";
 import { base64ToBytes, bytesToBase64 } from "@/utils/encoding";
 import { KeysAPI, EncryptionKey } from "@/resources/keys";
 import { NewVersion, Version } from "@/resources/version";
+import { EncryptedData, DiaryEncryption } from "@/resources/types";
 
 export interface CreateTemplateParams {
   content: string;
@@ -40,10 +41,9 @@ export interface ApiTemplate {
   deleted_at?: string;
   version: number;
 
-  // todo: to be declared
-  encryption: any;
+  encryption: DiaryEncryption;
   encryption_keys: EncryptionKey[];
-  details: any;
+  details: EncryptedData;
 }
 
 export interface Template {

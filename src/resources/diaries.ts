@@ -11,8 +11,7 @@ import { HttpClient } from "@/http";
 import { base64ToBytes, bytesToBase64 } from "@/utils/encoding";
 import { KeysAPI } from "@/resources/keys";
 import { NewVersion, Version } from "@/resources/version";
-
-// todo: moveout models?
+import { EncryptedData, DiaryEncryption } from "@/resources/types";
 
 export interface Diary {
   id: string;
@@ -29,10 +28,9 @@ export interface ApiDiary {
   updated_at: string;
   version: number;
 
-  // todo: to be declared
-  encryption: any;
+  encryption: DiaryEncryption;
   encryption_keys: EncryptionKey[];
-  details: any;
+  details: EncryptedData;
 }
 
 export interface EncryptionKey {
