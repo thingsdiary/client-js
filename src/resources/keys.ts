@@ -20,7 +20,10 @@ export interface EncryptionKey {
 }
 
 export class KeysAPI {
-  constructor(private http: HttpClient, private credentials: Credentials) {}
+  constructor(
+    private http: HttpClient,
+    private credentials: Credentials,
+  ) {}
 
   async getActive(diaryId: string): Promise<EncryptionKey> {
     // TODO: Implement client-side caching for keys (TTL ~5min)
@@ -39,7 +42,7 @@ export class KeysAPI {
       `/v1/diaries/${diaryId}/keys`,
       {
         method: "GET",
-      }
+      },
     );
 
     return response.keys.map((k) => this.decryptKey(k));
@@ -50,7 +53,7 @@ export class KeysAPI {
     const key = decryptWithPrivateKey(
       encryptedKey,
       this.credentials.encryptionPrivateKey,
-      this.credentials.encryptionPublicKey
+      this.credentials.encryptionPublicKey,
     );
 
     return { id: apiKey.id, value: key, status: apiKey.status };

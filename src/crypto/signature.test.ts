@@ -87,7 +87,7 @@ describe("Signature utilities", () => {
           const signature = signBytes(message, privateKey);
           expect(signature).toEqual(expectedSignature);
         });
-      }
+      },
     );
 
     it("should produce deterministic signatures", () => {
@@ -281,7 +281,7 @@ describe("Signature utilities", () => {
           const isValid = verifySignature(
             message,
             tamperedSignature,
-            publicKey
+            publicKey,
           );
           expect(isValid).toBe(false);
         }
@@ -412,13 +412,13 @@ describe("Signature utilities", () => {
         body: { ...request.body, title: "Hacked" },
       };
       const tamperedMessage = new TextEncoder().encode(
-        JSON.stringify(tamperedRequest)
+        JSON.stringify(tamperedRequest),
       );
 
       const isTamperedValid = verifySignature(
         tamperedMessage,
         signature,
-        publicKey
+        publicKey,
       );
 
       expect(isTamperedValid).toBe(false);

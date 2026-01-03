@@ -53,7 +53,7 @@ describe("Encoding utilities", () => {
       bytes: new Uint8Array(
         JSON.stringify({ key: "value", number: 42 })
           .split("")
-          .map((c) => c.charCodeAt(0))
+          .map((c) => c.charCodeAt(0)),
       ),
       base64: "eyJrZXkiOiJ2YWx1ZSIsIm51bWJlciI6NDJ9",
     },
@@ -77,7 +77,7 @@ describe("Encoding utilities", () => {
       bytes: new Uint8Array(
         "The quick brown fox jumps over the lazy dog"
           .split("")
-          .map((c) => c.charCodeAt(0))
+          .map((c) => c.charCodeAt(0)),
       ),
       base64: "VGhlIHF1aWNrIGJyb3duIGZveCBqdW1wcyBvdmVyIHRoZSBsYXp5IGRvZw==",
     },
@@ -140,13 +140,13 @@ describe("Encoding utilities", () => {
       expect(base64ToBytes("Zm8=")).toEqual(new Uint8Array([102, 111]));
       expect(base64ToBytes("Zm9v")).toEqual(new Uint8Array([102, 111, 111]));
       expect(base64ToBytes("Zm9vYg==")).toEqual(
-        new Uint8Array([102, 111, 111, 98])
+        new Uint8Array([102, 111, 111, 98]),
       );
       expect(base64ToBytes("Zm9vYmE=")).toEqual(
-        new Uint8Array([102, 111, 111, 98, 97])
+        new Uint8Array([102, 111, 111, 98, 97]),
       );
       expect(base64ToBytes("Zm9vYmFy")).toEqual(
-        new Uint8Array([102, 111, 111, 98, 97, 114])
+        new Uint8Array([102, 111, 111, 98, 97, 114]),
       );
     });
   });

@@ -19,7 +19,7 @@ describe("Auth resource", () => {
       "password",
       credentials,
       kdfSalt,
-      httpClient
+      httpClient,
     );
 
     expect(token).toBeDefined();

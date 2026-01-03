@@ -67,7 +67,7 @@ export class DiariesAPI {
   constructor(
     private http: HttpClient,
     private credentials: Credentials,
-    private keysAPI: KeysAPI
+    private keysAPI: KeysAPI,
   ) {}
 
   async create(params: CreateDiaryParams): Promise<Diary> {
@@ -84,7 +84,7 @@ export class DiariesAPI {
 
     const encryptedDiaryKey = encryptWithPublicKey(
       diaryKey,
-      this.credentials.encryptionPublicKey
+      this.credentials.encryptionPublicKey,
     );
 
     const request = {
@@ -102,14 +102,17 @@ export class DiariesAPI {
     const requestJson = new TextEncoder().encode(JSON.stringify(request));
     const signature = signBytes(
       requestJson,
-      this.credentials.signingPrivateKey
+      this.credentials.signingPrivateKey,
     );
 
-    const response = await this.http.request<CreateDiaryResponse>("/v1/diaries", {
-      method: "POST",
-      body: request,
-      headers: { "X-Signature": bytesToBase64(signature) },
-    });
+    const response = await this.http.request<CreateDiaryResponse>(
+      "/v1/diaries",
+      {
+        method: "POST",
+        body: request,
+        headers: { "X-Signature": bytesToBase64(signature) },
+      },
+    );
 
     return this.decryptDiary(response.diary);
   }
@@ -144,7 +147,7 @@ export class DiariesAPI {
     const requestJson = new TextEncoder().encode(JSON.stringify(request));
     const signature = signBytes(
       requestJson,
-      this.credentials.signingPrivateKey
+      this.credentials.signingPrivateKey,
     );
 
     const response = await this.http.request<PutDiaryResponse>(
@@ -153,7 +156,7 @@ export class DiariesAPI {
         method: "PUT",
         body: request,
         headers: { "X-Signature": bytesToBase64(signature) },
-      }
+      },
     );
 
     return this.decryptDiary(response.diary);
@@ -166,9 +169,12 @@ export class DiariesAPI {
   }
 
   async list(): Promise<Diary[]> {
-    const response = await this.http.request<GetDiariesResponse>("/v1/diaries", {
-      method: "GET",
-    });
+    const response = await this.http.request<GetDiariesResponse>(
+      "/v1/diaries",
+      {
+        method: "GET",
+      },
+    );
 
     const diaries: Diary[] = [];
     for (const encryptedDiary of response.diaries) {
@@ -182,7 +188,7 @@ export class DiariesAPI {
   async get(diaryId: string): Promise<Diary> {
     const response = await this.http.request<GetDiaryResponse>(
       `/v1/diaries/${diaryId}`,
-      { method: "GET" }
+      { method: "GET" },
     );
 
     return this.decryptDiary(response.diary);
@@ -194,13 +200,13 @@ export class DiariesAPI {
     const entityKey = decryptWithSymmetricKey(
       base64ToBytes(apiDiary.encryption.encrypted_key_nonce),
       base64ToBytes(apiDiary.encryption.encrypted_key_data),
-      diaryKey
+      diaryKey,
     );
 
     const detailsBytes = decryptWithSymmetricKey(
       base64ToBytes(apiDiary.details.nonce),
       base64ToBytes(apiDiary.details.data),
-      entityKey
+      entityKey,
     );
 
     const details = JSON.parse(new TextDecoder().decode(detailsBytes));
@@ -222,7 +228,7 @@ export class DiariesAPI {
     const diaryKey = decryptWithPrivateKey(
       encryptedKey,
       this.credentials.encryptionPrivateKey,
-      this.credentials.encryptionPublicKey
+      this.credentials.encryptionPublicKey,
     );
 
     return diaryKey;

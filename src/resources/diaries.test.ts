@@ -152,7 +152,7 @@ describe("Diaries API", () => {
     // List and verify all are present
     const diaries = await client.diaries.list();
     const sequentialDiaries = diaries.filter((d) =>
-      d.title.startsWith("Sequential Test")
+      d.title.startsWith("Sequential Test"),
     );
 
     expect(sequentialDiaries.length).toBeGreaterThanOrEqual(3);

@@ -59,12 +59,12 @@ export class TemplatesAPI {
   constructor(
     private http: HttpClient,
     private credentials: Credentials,
-    private keysAPI: KeysAPI
+    private keysAPI: KeysAPI,
   ) {}
 
   async create(
     diaryId: string,
-    params: CreateTemplateParams
+    params: CreateTemplateParams,
   ): Promise<Template> {
     return this.put(diaryId, crypto.randomUUID(), params);
   }
@@ -72,7 +72,7 @@ export class TemplatesAPI {
   async put(
     diaryId: string,
     templateId: string,
-    params: PutTemplateParams
+    params: PutTemplateParams,
   ): Promise<Template> {
     const encryptionKey = await this.keysAPI.getActive(diaryId);
     const diaryKey = encryptionKey.value;
@@ -103,7 +103,7 @@ export class TemplatesAPI {
     const requestJson = new TextEncoder().encode(JSON.stringify(request));
     const signature = signBytes(
       requestJson,
-      this.credentials.signingPrivateKey
+      this.credentials.signingPrivateKey,
     );
 
     const response = await this.http.request<PutTemplateResponse>(
@@ -112,7 +112,7 @@ export class TemplatesAPI {
         method: "PUT",
         body: request,
         headers: { "X-Signature": bytesToBase64(signature) },
-      }
+      },
     );
 
     return this.decryptTemplate(response.template, diaryKey);
@@ -123,13 +123,13 @@ export class TemplatesAPI {
       `/v1/diaries/${diaryId}/templates/${templateId}`,
       {
         method: "DELETE",
-      }
+      },
     );
   }
 
   async list(
     diaryId: string,
-    nextPageToken?: string
+    nextPageToken?: string,
   ): Promise<{ templates: Template[]; next_page_token?: string }> {
     const encryptionKey = await this.keysAPI.getActive(diaryId);
     const diaryKey = encryptionKey.value;
@@ -137,7 +137,7 @@ export class TemplatesAPI {
     const query = nextPageToken ? `?next_page_token=${nextPageToken}` : "";
     const response = await this.http.request<GetTemplatesResponse>(
       `/v1/diaries/${diaryId}/templates${query}`,
-      { method: "GET" }
+      { method: "GET" },
     );
 
     const templates: Template[] = [];
@@ -158,7 +158,7 @@ export class TemplatesAPI {
 
     const response = await this.http.request<GetTemplateResponse>(
       `/v1/diaries/${diaryId}/templates/${templateId}`,
-      { method: "GET" }
+      { method: "GET" },
     );
 
     return this.decryptTemplate(response.template, diaryKey);
@@ -166,18 +166,18 @@ export class TemplatesAPI {
 
   private decryptTemplate(
     apiTemplate: ApiTemplate,
-    diaryKey: Uint8Array
+    diaryKey: Uint8Array,
   ): Template {
     const entityKey = decryptWithSymmetricKey(
       base64ToBytes(apiTemplate.encryption.encrypted_key_nonce),
       base64ToBytes(apiTemplate.encryption.encrypted_key_data),
-      diaryKey
+      diaryKey,
     );
 
     const detailsBytes = decryptWithSymmetricKey(
       base64ToBytes(apiTemplate.details.nonce),
       base64ToBytes(apiTemplate.details.data),
-      entityKey
+      entityKey,
     );
 
     const details = JSON.parse(new TextDecoder().decode(detailsBytes));

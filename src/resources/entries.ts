@@ -70,7 +70,7 @@ export class EntriesAPI {
   constructor(
     private http: HttpClient,
     private credentials: Credentials,
-    private keysAPI: KeysAPI
+    private keysAPI: KeysAPI,
   ) {}
 
   async create(diaryId: string, params: CreateEntryParams): Promise<Entry> {
@@ -80,7 +80,7 @@ export class EntriesAPI {
   async put(
     diaryId: string,
     entryId: string,
-    params: PutEntryParams
+    params: PutEntryParams,
   ): Promise<Entry> {
     const encryptionKey = await this.keysAPI.getActive(diaryId);
     const diaryKey = encryptionKey.value;
@@ -125,7 +125,7 @@ export class EntriesAPI {
     const requestJson = new TextEncoder().encode(JSON.stringify(request));
     const signature = signBytes(
       requestJson,
-      this.credentials.signingPrivateKey
+      this.credentials.signingPrivateKey,
     );
 
     const response = await this.http.request<PutEntryResponse>(
@@ -134,7 +134,7 @@ export class EntriesAPI {
         method: "PUT",
         body: request,
         headers: { "X-Signature": bytesToBase64(signature) },
-      }
+      },
     );
 
     return this.decryptEntry(response.entry, diaryKey);
@@ -148,7 +148,7 @@ export class EntriesAPI {
 
   async list(
     diaryId: string,
-    nextPageToken?: string
+    nextPageToken?: string,
   ): Promise<{ entries: Entry[]; next_page_token?: string }> {
     const encryptionKey = await this.keysAPI.getActive(diaryId);
     const diaryKey = encryptionKey.value;
@@ -156,7 +156,7 @@ export class EntriesAPI {
     const query = nextPageToken ? `?next_page_token=${nextPageToken}` : "";
     const response = await this.http.request<GetEntriesResponse>(
       `/v1/diaries/${diaryId}/entries${query}`,
-      { method: "GET" }
+      { method: "GET" },
     );
 
     const entries: Entry[] = [];
@@ -177,7 +177,7 @@ export class EntriesAPI {
 
     const response = await this.http.request<GetEntryResponse>(
       `/v1/diaries/${diaryId}/entries/${entryId}`,
-      { method: "GET" }
+      { method: "GET" },
     );
 
     return this.decryptEntry(response.entry, diaryKey);
@@ -187,13 +187,13 @@ export class EntriesAPI {
     const entityKey = decryptWithSymmetricKey(
       base64ToBytes(apiEntry.encryption.encrypted_key_nonce),
       base64ToBytes(apiEntry.encryption.encrypted_key_data),
-      diaryKey
+      diaryKey,
     );
 
     const detailsBytes = decryptWithSymmetricKey(
       base64ToBytes(apiEntry.details.nonce),
       base64ToBytes(apiEntry.details.data),
-      entityKey
+      entityKey,
     );
 
     const details = JSON.parse(new TextDecoder().decode(detailsBytes));

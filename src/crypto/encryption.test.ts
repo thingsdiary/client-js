@@ -95,7 +95,7 @@ describe("Encryption", () => {
       const decrypted = decryptWithPrivateKey(
         encrypted,
         keyPair.secretKey,
-        keyPair.publicKey
+        keyPair.publicKey,
       );
 
       expect(decrypted).toEqual(data);
@@ -112,7 +112,11 @@ describe("Encryption", () => {
       const encrypted = encryptWithPublicKey(data, keyPair1.publicKey);
 
       expect(() =>
-        decryptWithPrivateKey(encrypted, keyPair2.secretKey, keyPair2.publicKey)
+        decryptWithPrivateKey(
+          encrypted,
+          keyPair2.secretKey,
+          keyPair2.publicKey,
+        ),
       ).toThrow("Failed to decrypt");
     });
 
@@ -121,7 +125,11 @@ describe("Encryption", () => {
       const invalidData = new Uint8Array(10); // Too short
 
       expect(() =>
-        decryptWithPrivateKey(invalidData, keyPair.secretKey, keyPair.publicKey)
+        decryptWithPrivateKey(
+          invalidData,
+          keyPair.secretKey,
+          keyPair.publicKey,
+        ),
       ).toThrow("Invalid sealed box: too short");
     });
 
@@ -139,12 +147,12 @@ describe("Encryption", () => {
       const decrypted1 = decryptWithPrivateKey(
         encrypted1,
         keyPair.secretKey,
-        keyPair.publicKey
+        keyPair.publicKey,
       );
       const decrypted2 = decryptWithPrivateKey(
         encrypted2,
         keyPair.secretKey,
-        keyPair.publicKey
+        keyPair.publicKey,
       );
 
       expect(decrypted1).toEqual(data);

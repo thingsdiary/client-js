@@ -422,7 +422,7 @@ describe("Topics API", () => {
 
     const result = await client.topics.list(diaryId);
     const sequentialTopics = result.topics.filter((t) =>
-      t.title.startsWith("Sequential Topic")
+      t.title.startsWith("Sequential Topic"),
     );
 
     expect(sequentialTopics.length).toBeGreaterThanOrEqual(3);

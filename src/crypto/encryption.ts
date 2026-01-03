@@ -18,7 +18,7 @@ export function generateSymmetricKey(): Uint8Array {
  */
 export function encryptWithSymmetricKey(
   data: Uint8Array,
-  key: Uint8Array
+  key: Uint8Array,
 ): { nonce: Uint8Array; ciphertext: Uint8Array } {
   const nonce = randomBytes(12);
   const aes = gcm(key, nonce);
@@ -40,7 +40,7 @@ export function encryptWithSymmetricKey(
 export function decryptWithSymmetricKey(
   nonce: Uint8Array,
   ciphertext: Uint8Array,
-  key: Uint8Array
+  key: Uint8Array,
 ): Uint8Array {
   const aes = gcm(key, nonce);
   const plaintext = aes.decrypt(ciphertext);
@@ -56,7 +56,7 @@ export function decryptWithSymmetricKey(
  */
 export function encryptWithPublicKey(
   data: Uint8Array,
-  publicKey: Uint8Array
+  publicKey: Uint8Array,
 ): Uint8Array {
   // Generate ephemeral keypair
   const ephemeralKeyPair = generateKeyPair();
@@ -91,7 +91,7 @@ export function encryptWithPublicKey(
 export function decryptWithPrivateKey(
   encrypted: Uint8Array,
   privateKey: Uint8Array,
-  publicKey: Uint8Array
+  publicKey: Uint8Array,
 ): Uint8Array {
   // Extract ephemeral public key (first 32 bytes)
   if (encrypted.length < 32) {
