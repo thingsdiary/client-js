@@ -1,6 +1,46 @@
 import { describe, expect, it } from "vitest";
 import { bytesToBase64, base64ToBytes } from "@/utils/encoding";
 
+function withNoBuffer<T>(fn: () => T): T {
+  const g = globalThis as any;
+  const prev = g.Buffer;
+  try {
+    g.Buffer = undefined;
+    return fn();
+  } finally {
+    g.Buffer = prev;
+  }
+}
+
+function makeDeterministicBytes(length: number): Uint8Array {
+  const bytes = new Uint8Array(length);
+  for (let i = 0; i < bytes.length; i++) {
+    bytes[i] = (i * 31 + 17) & 0xff;
+  }
+  return bytes;
+}
+
+function btoaPolyfill(binary: string): string {
+  if (typeof globalThis.btoa === "function") return globalThis.btoa(binary);
+  return Buffer.from(binary, "binary").toString("base64");
+}
+
+function atobPolyfill(base64: string): string {
+  if (typeof globalThis.atob === "function") return globalThis.atob(base64);
+  return Buffer.from(base64, "base64").toString("binary");
+}
+
+// Legacy browser-fallback implementation (baseline).
+function legacyBytesToBase64(bytes: Uint8Array): string {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return btoaPolyfill(String.fromCharCode(...(bytes as any)));
+}
+
+function legacyBase64ToBytes(base64: string): Uint8Array {
+  const binary = atobPolyfill(base64);
+  return new Uint8Array(binary.split("").map((c) => c.charCodeAt(0)));
+}
+
 describe("Encoding utilities", () => {
   // Golden test data - known base64 encodings to verify compatibility
   const goldenData = [
@@ -296,6 +336,44 @@ describe("Encoding utilities", () => {
 
       expect(decoded).toEqual(ciphertext);
       expect(decoded.length).toBe(1000);
+    });
+  });
+
+  describe("browser fallback (no Buffer)", () => {
+    it("can be forced in tests (sanity check)", () => {
+      withNoBuffer(() => {
+        expect(typeof Buffer).toBe("undefined");
+      });
+    });
+
+    it("round-trips large payloads without crashing", () => {
+      const bytes = makeDeterministicBytes(1_000_000); // 1MB
+      const decoded = withNoBuffer(() => {
+        const b64 = bytesToBase64(bytes);
+        return base64ToBytes(b64);
+      });
+      expect(decoded).toEqual(bytes);
+    });
+
+    it("decodes unpadded base64", () => {
+      const bytes = new TextEncoder().encode("test");
+      const padded = Buffer.from(bytes).toString("base64");
+      const unpadded = padded.replace(/=+$/, "");
+      const decoded = withNoBuffer(() => base64ToBytes(unpadded));
+      expect(decoded).toEqual(bytes);
+    });
+
+    it("handles sizes that crash the legacy spread-based encoder", () => {
+      const bytes = makeDeterministicBytes(1_000_000); // 1MB
+      expect(() => legacyBytesToBase64(bytes)).toThrow();
+      expect(() => withNoBuffer(() => bytesToBase64(bytes))).not.toThrow();
+    });
+
+    it("produces same bytes as legacy decoder (sanity check)", () => {
+      const bytes = makeDeterministicBytes(256_000);
+      const base64 = Buffer.from(bytes).toString("base64");
+      expect(legacyBase64ToBytes(base64)).toEqual(bytes);
+      expect(withNoBuffer(() => base64ToBytes(base64))).toEqual(bytes);
     });
   });
 });

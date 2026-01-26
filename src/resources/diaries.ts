@@ -222,6 +222,7 @@ export class DiariesAPI {
   }
 
   private getDiaryKey(apiDiary: ApiDiary): Uint8Array {
+    // TODO: Add proper key selection when multiple encryption keys are supported
     const encryptedKey = base64ToBytes(apiDiary.encryption_keys[0].value);
 
     const diaryKey = decryptWithPrivateKey(
