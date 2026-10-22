@@ -3,9 +3,7 @@ import { signBytes } from "@/crypto/signature";
 import { HttpClient } from "@/http";
 import { base64ToBytes, bytesToBase64 } from "@/utils/encoding";
 
-const defaultHttpClient = new HttpClient(
-  "https://cloud.thingsdiary.com/api"
-);
+const defaultHttpClient = new HttpClient("https://cloud.thingsdiary.com/api");
 
 export interface RegisterResponse {
   token: string;
@@ -26,7 +24,7 @@ export async function register(
   password: string,
   credentials: Credentials,
   kdfSalt: string,
-  httpClient?: HttpClient
+  httpClient?: HttpClient,
 ): Promise<string> {
   const body = {
     login,
@@ -50,7 +48,7 @@ export async function login(
   login: string,
   password: string,
   seedPhrase: string,
-  httpClient?: HttpClient
+  httpClient?: HttpClient,
 ): Promise<string> {
   const client = httpClient ?? defaultHttpClient;
 
@@ -68,16 +66,13 @@ export async function login(
   const signedNonce = signBytes(nonce, credentials.signingPrivateKey);
 
   // Step 4: Verify challenge
-  const verifyResp = await client.request<LoginVerifyResponse>(
-    "/v1/auth/login/verify",
-    {
-      method: "POST",
-      body: {
-        challenge_id: loginResp.challenge_id,
-        signed_nonce: bytesToBase64(signedNonce),
-      },
-    }
-  );
+  const verifyResp = await client.request<LoginVerifyResponse>("/v1/auth/login/verify", {
+    method: "POST",
+    body: {
+      challenge_id: loginResp.challenge_id,
+      signed_nonce: bytesToBase64(signedNonce),
+    },
+  });
 
   return verifyResp.token;
 }

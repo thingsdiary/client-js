@@ -14,13 +14,7 @@ describe("Auth resource", () => {
     const email = `${randomUUID()}@thingsdiary.io`;
 
     // Register new user
-    const token = await register(
-      email,
-      "password",
-      credentials,
-      kdfSalt,
-      httpClient
-    );
+    const token = await register(email, "password", credentials, kdfSalt, httpClient);
 
     expect(token).toBeDefined();
 

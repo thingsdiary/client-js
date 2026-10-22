@@ -21,16 +21,12 @@ describe("Encoding utilities", () => {
     },
     {
       description: "simple ASCII text 'Hello, World!'",
-      bytes: new Uint8Array([
-        72, 101, 108, 108, 111, 44, 32, 87, 111, 114, 108, 100, 33,
-      ]),
+      bytes: new Uint8Array([72, 101, 108, 108, 111, 44, 32, 87, 111, 114, 108, 100, 33]),
       base64: "SGVsbG8sIFdvcmxkIQ==",
     },
     {
       description: "UTF-8 text 'привет' (Russian)",
-      bytes: new Uint8Array([
-        208, 191, 209, 128, 208, 184, 208, 178, 208, 181, 209, 130,
-      ]),
+      bytes: new Uint8Array([208, 191, 209, 128, 208, 184, 208, 178, 208, 181, 209, 130]),
       base64: "0L/RgNC40LLQtdGC",
     },
     {
@@ -53,7 +49,7 @@ describe("Encoding utilities", () => {
       bytes: new Uint8Array(
         JSON.stringify({ key: "value", number: 42 })
           .split("")
-          .map((c) => c.charCodeAt(0))
+          .map((c) => c.charCodeAt(0)),
       ),
       base64: "eyJrZXkiOiJ2YWx1ZSIsIm51bWJlciI6NDJ9",
     },
@@ -75,9 +71,7 @@ describe("Encoding utilities", () => {
     {
       description: "the quick brown fox",
       bytes: new Uint8Array(
-        "The quick brown fox jumps over the lazy dog"
-          .split("")
-          .map((c) => c.charCodeAt(0))
+        "The quick brown fox jumps over the lazy dog".split("").map((c) => c.charCodeAt(0)),
       ),
       base64: "VGhlIHF1aWNrIGJyb3duIGZveCBqdW1wcyBvdmVyIHRoZSBsYXp5IGRvZw==",
     },
@@ -139,15 +133,9 @@ describe("Encoding utilities", () => {
       expect(base64ToBytes("Zg==")).toEqual(new Uint8Array([102]));
       expect(base64ToBytes("Zm8=")).toEqual(new Uint8Array([102, 111]));
       expect(base64ToBytes("Zm9v")).toEqual(new Uint8Array([102, 111, 111]));
-      expect(base64ToBytes("Zm9vYg==")).toEqual(
-        new Uint8Array([102, 111, 111, 98])
-      );
-      expect(base64ToBytes("Zm9vYmE=")).toEqual(
-        new Uint8Array([102, 111, 111, 98, 97])
-      );
-      expect(base64ToBytes("Zm9vYmFy")).toEqual(
-        new Uint8Array([102, 111, 111, 98, 97, 114])
-      );
+      expect(base64ToBytes("Zm9vYg==")).toEqual(new Uint8Array([102, 111, 111, 98]));
+      expect(base64ToBytes("Zm9vYmE=")).toEqual(new Uint8Array([102, 111, 111, 98, 97]));
+      expect(base64ToBytes("Zm9vYmFy")).toEqual(new Uint8Array([102, 111, 111, 98, 97, 114]));
     });
   });
 

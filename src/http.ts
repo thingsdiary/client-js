@@ -2,7 +2,10 @@ import { ApiError } from "@/errors";
 import { USER_AGENT } from "@/user-agent";
 
 export class HttpClient {
-  constructor(private readonly baseUrl: string, private authToken?: string) {}
+  constructor(
+    private readonly baseUrl: string,
+    private authToken?: string,
+  ) {}
 
   setAuthToken(token: string) {
     this.authToken = token;
@@ -23,7 +26,7 @@ export class HttpClient {
       method: string;
       body?: unknown;
       headers?: Record<string, string>;
-    } = { method: "GET" }
+    } = { method: "GET" },
   ): Promise<T> {
     const url = `${this.baseUrl}${path}`;
     const body = options.body ? JSON.stringify(options.body) : undefined;
@@ -43,11 +46,7 @@ export class HttpClient {
         throw new Error(`HTTP ${res.status}: ${errorText}`);
       }
 
-      throw new ApiError(
-        res.status,
-        errorData.error_code,
-        errorData.error_reason
-      );
+      throw new ApiError(res.status, errorData.error_code, errorData.error_reason);
     }
 
     if (res.status === 204) return undefined as T;
