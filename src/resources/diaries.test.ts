@@ -1,33 +1,16 @@
-import { describe, expect, it, beforeAll } from "vitest";
 import { randomUUID } from "node:crypto";
-import { HttpClient } from "@/http";
-import { register } from "@/auth";
-import { deriveCredentials, generateSalt } from "@/crypto/credentials";
-import { createClient } from "@/client";
-import type { Credentials } from "@/crypto/credentials";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { Client } from "@/client";
+import { newTestClient } from "@/testing/client";
 
 describe("Diaries API", () => {
   let client: Client;
-  let credentials: Credentials;
-  let token: string;
 
   beforeAll(async () => {
-    const seedPhrase = "test seed phrase for diaries " + randomUUID();
-    const kdfSalt = generateSalt();
-    credentials = deriveCredentials(seedPhrase, kdfSalt);
-
-    const httpClient = new HttpClient("http://127.0.0.1:8081/api");
-    const email = `${randomUUID()}@thingsdiary.io`;
-
-    token = await register(email, "password", credentials, kdfSalt, httpClient);
-
-    client = createClient({
-      token,
-      credentials,
-      baseUrl: "http://127.0.0.1:8081/api",
-    });
+    client = await newTestClient();
   });
+
+  afterAll(() => client.close());
 
   it("should create a new diary", async () => {
     const diary = await client.diaries.create({

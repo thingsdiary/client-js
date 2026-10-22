@@ -1,214 +1,139 @@
-import { Credentials } from "@/crypto/credentials";
-import {
-  generateSymmetricKey,
-  encryptWithSymmetricKey,
-  decryptWithSymmetricKey,
-} from "@/crypto/encryption";
-import { signBytes } from "@/crypto/signature";
-import { HttpClient } from "@/http";
-import { base64ToBytes, bytesToBase64 } from "@/utils/encoding";
-import { KeysAPI, EncryptionKey } from "@/resources/keys";
+import { encryptWithSymmetricKey } from "@/crypto/encryption";
+import { RealtimeClient } from "@/realtime";
+import { KeysAPI } from "@/resources/keys";
+import { decryptDetails, encryptDetails } from "@/resources/details";
+import { timestampToDate } from "@/utils/protobuf/timestamp";
 import { NewVersion, Version } from "@/resources/version";
+import type { Entry } from "@/types";
+import {
+  DeleteEntryRequest,
+  Entry as ProtoEntry,
+  GetEntryRequest,
+  GetEntryResponse,
+  ListEntriesRequest,
+  ListEntriesResponse,
+  PutEntryRequest,
+  RestoreEntryRequest,
+} from "@/proto/entry";
 
-export interface CreateEntryParams {
+export interface PutEntryParams {
   content: string;
   topic_id?: string | null;
   archived?: boolean;
   bookmarked?: boolean;
   preview_hidden?: boolean;
-}
-
-export interface PutEntryParams extends CreateEntryParams {
   version?: Version;
-}
-
-export interface PutEntryResponse {
-  entry: ApiEntry;
-}
-
-export interface GetEntryResponse {
-  entry: ApiEntry;
-}
-
-export interface GetEntriesResponse {
-  entries: ApiEntry[];
-  next_page_token?: string;
-}
-
-export interface ApiEntry {
-  id: string;
-  diary_id: string;
-  topic_id?: string;
-
-  created_at: string;
-  updated_at: string;
-  deleted_at?: string;
-  version: number;
-
-  // todo: to be declared
-  encryption: any;
-  encryption_keys: EncryptionKey[];
-  preview: any;
-  details: any;
-}
-
-export interface Entry {
-  id: string;
-  diary_id: string;
-  content: string;
-  topic_id?: string;
-  archived: boolean;
-  bookmarked: boolean;
-  preview_hidden: boolean;
-  created_at: Date;
-  updated_at: Date;
-  deleted_at?: Date;
-  version: number;
 }
 
 export class EntriesAPI {
   constructor(
-    private http: HttpClient,
-    private credentials: Credentials,
-    private keysAPI: KeysAPI,
+    private rpc: RealtimeClient,
+    private keys: KeysAPI,
   ) {}
 
-  async create(diaryId: string, params: CreateEntryParams): Promise<Entry> {
+  async create(diaryId: string, params: PutEntryParams): Promise<Entry> {
     return this.put(diaryId, crypto.randomUUID(), params);
   }
 
   async put(diaryId: string, entryId: string, params: PutEntryParams): Promise<Entry> {
-    const encryptionKey = await this.keysAPI.getActive(diaryId);
-    const diaryKey = encryptionKey.value;
-
-    const entityKey = generateSymmetricKey();
-
-    const details = {
+    const key = await this.keys.getActive(diaryId);
+    const plain = {
       content: params.content,
       archived: params.archived ?? false,
       bookmarked: params.bookmarked ?? false,
       preview_hidden: params.preview_hidden ?? false,
     };
-    const detailsJson = new TextEncoder().encode(JSON.stringify(details));
-    const { nonce: detailsNonce, ciphertext: encryptedDetails } = encryptWithSymmetricKey(
-      detailsJson,
-      entityKey,
+    const encrypted = encryptDetails(plain, key.value, key.id);
+    const previewValue = encryptWithSymmetricKey(
+      new TextEncoder().encode(JSON.stringify(plain)),
+      encrypted.key,
     );
 
-    // Encrypt preview (same as details in this implementation)
-    const { nonce: previewNonce, ciphertext: encryptedPreview } = encryptWithSymmetricKey(
-      detailsJson,
-      entityKey,
-    );
-
-    const { nonce: keyNonce, ciphertext: encryptedEntityKey } = encryptWithSymmetricKey(
-      entityKey,
-      diaryKey,
-    );
-
-    const request = {
-      version: params.version ?? NewVersion(),
-      topic_id: params.topic_id,
-      encryption: {
-        diary_key_id: encryptionKey.id,
-        encrypted_key_nonce: bytesToBase64(keyNonce),
-        encrypted_key_data: bytesToBase64(encryptedEntityKey),
-      },
-      details: {
-        nonce: bytesToBase64(detailsNonce),
-        data: bytesToBase64(encryptedDetails),
-      },
-      preview: {
-        nonce: bytesToBase64(previewNonce),
-        data: bytesToBase64(encryptedPreview),
-      },
-    };
-
-    const requestJson = new TextEncoder().encode(JSON.stringify(request));
-    const signature = signBytes(requestJson, this.credentials.signingPrivateKey);
-
-    const response = await this.http.request<PutEntryResponse>(
-      `/v1/diaries/${diaryId}/entries/${entryId}`,
+    // TODO: Sign the encoded request with credentials.signingPrivateKey before sending it.
+    await this.rpc.rpc(
+      "io.thingsdiary.v1.entry.put",
       {
-        method: "PUT",
-        body: request,
-        headers: { "X-Signature": bytesToBase64(signature) },
+        diaryId,
+        entryId,
+        version: BigInt(params.version ?? NewVersion()),
+        topicId: params.topic_id === null ? undefined : params.topic_id,
+        encryption: encrypted.encryption,
+        details: encrypted.details,
+        preview: { nonce: previewValue.nonce, data: previewValue.ciphertext },
       },
+      PutEntryRequest,
     );
 
-    return this.decryptEntry(response.entry, diaryKey);
+    // TODO: Wait for the matching realtime event and return its payload instead of reading again.
+    return this.get(diaryId, entryId);
   }
 
-  async delete(diaryId: string, entryId: string): Promise<void> {
-    await this.http.request<void>(`/v1/diaries/${diaryId}/entries/${entryId}`, {
-      method: "DELETE",
-    });
+  async get(diaryId: string, entryId: string): Promise<Entry> {
+    const key = await this.keys.getActive(diaryId);
+
+    const response = await this.rpc.rpc(
+      "io.thingsdiary.v1.entry.get",
+      { diaryId, entryId },
+      GetEntryRequest,
+      GetEntryResponse,
+    );
+
+    if (!response!.entry) throw new Error("entry is missing from response");
+
+    return this.decrypt(response!.entry, key.value);
   }
 
   async list(
     diaryId: string,
     nextPageToken?: string,
   ): Promise<{ entries: Entry[]; next_page_token?: string }> {
-    const encryptionKey = await this.keysAPI.getActive(diaryId);
-    const diaryKey = encryptionKey.value;
+    const key = await this.keys.getActive(diaryId);
 
-    const query = nextPageToken ? `?next_page_token=${nextPageToken}` : "";
-    const response = await this.http.request<GetEntriesResponse>(
-      `/v1/diaries/${diaryId}/entries${query}`,
-      { method: "GET" },
+    const response = await this.rpc.rpc(
+      "io.thingsdiary.v1.entry.list",
+      { diaryId, page: nextPageToken ? { limit: 0, pageToken: nextPageToken } : undefined },
+      ListEntriesRequest,
+      ListEntriesResponse,
     );
 
-    const entries: Entry[] = [];
-    for (const apiEntry of response.entries) {
-      const entry = this.decryptEntry(apiEntry, diaryKey);
-      entries.push(entry);
-    }
-
     return {
-      entries,
-      next_page_token: response.next_page_token,
+      entries: response!.entries.map((value) => this.decrypt(value, key.value)),
+      next_page_token: response!.page?.nextPageToken || undefined,
     };
   }
 
-  async get(diaryId: string, entryId: string): Promise<Entry> {
-    const encryptionKey = await this.keysAPI.getActive(diaryId);
-    const diaryKey = encryptionKey.value;
+  async delete(diaryId: string, entryId: string): Promise<void> {
+    // TODO: Sign the encoded request with credentials.signingPrivateKey before sending it.
+    await this.rpc.rpc("io.thingsdiary.v1.entry.delete", { diaryId, entryId }, DeleteEntryRequest);
 
-    const response = await this.http.request<GetEntryResponse>(
-      `/v1/diaries/${diaryId}/entries/${entryId}`,
-      { method: "GET" },
-    );
-
-    return this.decryptEntry(response.entry, diaryKey);
+    // TODO: Wait for the matching realtime event before returning.
   }
 
-  private decryptEntry(apiEntry: ApiEntry, diaryKey: Uint8Array): Entry {
-    const entityKey = decryptWithSymmetricKey(
-      base64ToBytes(apiEntry.encryption.encrypted_key_nonce),
-      base64ToBytes(apiEntry.encryption.encrypted_key_data),
-      diaryKey,
+  async restore(diaryId: string, entryId: string): Promise<void> {
+    // TODO: Sign the encoded request with credentials.signingPrivateKey before sending it.
+    await this.rpc.rpc(
+      "io.thingsdiary.v1.entry.restore",
+      { diaryId, entryId },
+      RestoreEntryRequest,
     );
 
-    const detailsBytes = decryptWithSymmetricKey(
-      base64ToBytes(apiEntry.details.nonce),
-      base64ToBytes(apiEntry.details.data),
-      entityKey,
-    );
+    // TODO: Wait for the matching realtime event before returning.
+  }
 
-    const details = JSON.parse(new TextDecoder().decode(detailsBytes));
+  private decrypt(value: ProtoEntry, key: Uint8Array): Entry {
+    const details = decryptDetails(value, key);
 
     return {
-      id: apiEntry.id,
-      diary_id: apiEntry.diary_id,
+      id: value.id,
+      diary_id: value.diaryId,
       content: details.content,
-      topic_id: apiEntry.topic_id,
+      topic_id: value.topicId,
       archived: details.archived,
       bookmarked: details.bookmarked,
       preview_hidden: details.preview_hidden,
-      created_at: new Date(apiEntry.created_at),
-      updated_at: new Date(apiEntry.updated_at),
-      deleted_at: apiEntry.deleted_at ? new Date(apiEntry.deleted_at) : undefined,
-      version: apiEntry.version,
+      created_at: timestampToDate(value.createdAt),
+      updated_at: timestampToDate(value.updatedAt),
+      version: Number(value.version),
     };
   }
 }

@@ -2,6 +2,20 @@
   "name": "@thingsdiary/client",
   "version": "0.0.1",
   "description": "Official TypeScript/JavaScript client for thingsdiary cloud API",
+  "keywords": [],
+  "homepage": "https://github.com/thingsdiary/client-js#readme",
+  "bugs": {
+    "url": "https://github.com/thingsdiary/client-js/issues"
+  },
+  "license": "ISC",
+  "author": "",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/thingsdiary/client-js.git"
+  },
+  "files": [
+    "dist"
+  ],
   "type": "module",
   "main": "dist/index.cjs.js",
   "module": "dist/index.es.js",
@@ -13,8 +27,11 @@
       "require": "./dist/index.cjs.js"
     }
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
-    "build": "vite build && tsc --emitDeclarationOnly && tsc-alias",
+    "build": "vite build && tsc -p tsconfig.build.json --emitDeclarationOnly && tsc-alias -p tsconfig.build.json",
     "build:prod": "NODE_ENV=production npm run build",
     "format": "oxfmt src vite.config.ts",
     "lint": "oxlint src vite.config.ts",
@@ -22,37 +39,24 @@
     "test:watch": "vitest",
     "prepublishOnly": "npm run build:prod"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/thingsdiary/client-js.git"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/thingsdiary/client-js/issues"
-  },
-  "homepage": "https://github.com/thingsdiary/client-js#readme",
-  "files": [
-    "dist"
-  ],
-  "publishConfig": {
-    "access": "public"
-  },
   "dependencies": {
+    "@bufbuild/protobuf": "^2.16.0",
     "@noble/ciphers": "^2.0.1",
     "@noble/curves": "^2.0.1",
     "@noble/hashes": "^2.0.1",
-    "@stablelib/nacl": "^2.0.1"
+    "@stablelib/nacl": "^2.0.1",
+    "centrifuge": "^5.8.0"
   },
   "devDependencies": {
     "@types/node": "^24.7.0",
+    "@types/ws": "^8.18.2",
     "oxfmt": "^0.74.0",
     "oxlint": "^1.89.0",
     "tsc-alias": "^1.8.16",
     "typescript": "^5.9.3",
     "vite": "^7.1.9",
     "vite-tsconfig-paths": "^5.1.4",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "ws": "^8.22.0"
   }
 }

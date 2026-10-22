@@ -1,34 +1,15 @@
-import { describe, expect, it, beforeAll } from "vitest";
-import { randomUUID } from "node:crypto";
-import { HttpClient } from "@/http";
-import { register } from "@/auth";
-import { deriveCredentials, generateSalt } from "@/crypto/credentials";
-import { createClient } from "@/client";
-import { ApiError } from "@/errors";
-import type { Credentials } from "@/crypto/credentials";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { Client } from "@/client";
+import { newTestClient } from "@/testing/client";
 
 describe("Keys API", () => {
   let client: Client;
-  let credentials: Credentials;
-  let token: string;
 
   beforeAll(async () => {
-    const seedPhrase = "test seed phrase for keys " + randomUUID();
-    const kdfSalt = generateSalt();
-    credentials = deriveCredentials(seedPhrase, kdfSalt);
-
-    const httpClient = new HttpClient("http://127.0.0.1:8081/api");
-    const email = `${randomUUID()}@thingsdiary.io`;
-
-    token = await register(email, "password", credentials, kdfSalt, httpClient);
-
-    client = createClient({
-      token,
-      credentials,
-      baseUrl: "http://127.0.0.1:8081/api",
-    });
+    client = await newTestClient();
   });
+
+  afterAll(() => client.close());
 
   it("should list all encryption keys for a diary", async () => {
     // Create a diary first
@@ -74,7 +55,7 @@ describe("Keys API", () => {
     await client.diaries.delete(diary.id);
   });
 
-  it("should return 404 when getting keys for deleted diary", async () => {
+  it("should return not found when getting keys for deleted diary", async () => {
     // Create a diary
     const diary = await client.diaries.create({
       title: "Diary to Delete for Keys Test",
@@ -88,19 +69,14 @@ describe("Keys API", () => {
     // Delete the diary
     await client.diaries.delete(diary.id);
 
-    // Try to get keys for deleted diary - should fail with 404
-    await expect(client.keys.list(diary.id)).rejects.toThrow(ApiError);
-
-    try {
-      await client.keys.list(diary.id);
-      expect.fail("Should have thrown an error for deleted diary");
-    } catch (error) {
-      expect(error).toBeInstanceOf(ApiError);
-      expect((error as ApiError).statusCode).toBe(404);
-    }
+    await expect(client.keys.list(diary.id)).rejects.toMatchObject({
+      code: 1004,
+      message: "resource not found",
+      temporary: false,
+    });
   });
 
-  it("should return 404 when getting active key for deleted diary", async () => {
+  it("should return not found when getting active key for deleted diary", async () => {
     // Create a diary
     const diary = await client.diaries.create({
       title: "Diary to Delete for GetActive Test",
@@ -114,16 +90,11 @@ describe("Keys API", () => {
     // Delete the diary
     await client.diaries.delete(diary.id);
 
-    // Try to get active key for deleted diary - should fail with 404
-    await expect(client.keys.getActive(diary.id)).rejects.toThrow(ApiError);
-
-    try {
-      await client.keys.getActive(diary.id);
-      expect.fail("Should have thrown an error for deleted diary");
-    } catch (error) {
-      expect(error).toBeInstanceOf(ApiError);
-      expect((error as ApiError).statusCode).toBe(404);
-    }
+    await expect(client.keys.getActive(diary.id)).rejects.toMatchObject({
+      code: 1004,
+      message: "resource not found",
+      temporary: false,
+    });
   });
 
   it("should decrypt keys correctly", async () => {
