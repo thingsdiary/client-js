@@ -90,9 +90,7 @@ describe("Templates API", () => {
     expect(deleted.deleted_at).toBeInstanceOf(Date);
     expect(deleted.removed_at).toBeUndefined();
 
-    await client.templates.restore(diaryId, created.id);
-
-    const restored = await client.templates.get(diaryId, created.id);
+    const restored = await client.templates.restore(diaryId, created.id);
     expect(restored.deleted_at).toBeUndefined();
     expect(restored.removed_at).toBeUndefined();
   });

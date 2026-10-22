@@ -14,6 +14,7 @@ import { TopicChanged, TopicDeleted, TopicRestored } from "./topic.js";
 export const protobufPackage = "io.thingsdiary.v1";
 
 export interface Event {
+  operationId: string;
   payload:
     | { $case: "diaryCreated"; value: DiaryCreated }
     | { $case: "diaryChanged"; value: DiaryChanged }
@@ -31,47 +32,50 @@ export interface Event {
 }
 
 function createBaseEvent(): Event {
-  return { payload: undefined };
+  return { operationId: "", payload: undefined };
 }
 
 export const Event: MessageFns<Event> = {
   encode(message: Event, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.operationId !== "") {
+      writer.uint32(10).string(message.operationId);
+    }
     switch (message.payload?.$case) {
       case "diaryCreated":
-        DiaryCreated.encode(message.payload.value, writer.uint32(10).fork()).join();
+        DiaryCreated.encode(message.payload.value, writer.uint32(18).fork()).join();
         break;
       case "diaryChanged":
-        DiaryChanged.encode(message.payload.value, writer.uint32(18).fork()).join();
+        DiaryChanged.encode(message.payload.value, writer.uint32(26).fork()).join();
         break;
       case "diaryDeleted":
-        DiaryDeleted.encode(message.payload.value, writer.uint32(26).fork()).join();
+        DiaryDeleted.encode(message.payload.value, writer.uint32(34).fork()).join();
         break;
       case "entryChanged":
-        EntryChanged.encode(message.payload.value, writer.uint32(34).fork()).join();
+        EntryChanged.encode(message.payload.value, writer.uint32(42).fork()).join();
         break;
       case "entryDeleted":
-        EntryDeleted.encode(message.payload.value, writer.uint32(42).fork()).join();
+        EntryDeleted.encode(message.payload.value, writer.uint32(50).fork()).join();
         break;
       case "entryRestored":
-        EntryRestored.encode(message.payload.value, writer.uint32(50).fork()).join();
+        EntryRestored.encode(message.payload.value, writer.uint32(58).fork()).join();
         break;
       case "topicChanged":
-        TopicChanged.encode(message.payload.value, writer.uint32(58).fork()).join();
+        TopicChanged.encode(message.payload.value, writer.uint32(66).fork()).join();
         break;
       case "topicDeleted":
-        TopicDeleted.encode(message.payload.value, writer.uint32(66).fork()).join();
+        TopicDeleted.encode(message.payload.value, writer.uint32(74).fork()).join();
         break;
       case "topicRestored":
-        TopicRestored.encode(message.payload.value, writer.uint32(74).fork()).join();
+        TopicRestored.encode(message.payload.value, writer.uint32(82).fork()).join();
         break;
       case "templateChanged":
-        TemplateChanged.encode(message.payload.value, writer.uint32(82).fork()).join();
+        TemplateChanged.encode(message.payload.value, writer.uint32(90).fork()).join();
         break;
       case "templateDeleted":
-        TemplateDeleted.encode(message.payload.value, writer.uint32(90).fork()).join();
+        TemplateDeleted.encode(message.payload.value, writer.uint32(98).fork()).join();
         break;
       case "templateRestored":
-        TemplateRestored.encode(message.payload.value, writer.uint32(98).fork()).join();
+        TemplateRestored.encode(message.payload.value, writer.uint32(106).fork()).join();
         break;
     }
     return writer;
@@ -95,7 +99,7 @@ export const Event: MessageFns<Event> = {
               break;
             }
 
-            message.payload = { $case: "diaryCreated", value: DiaryCreated.decode(reader, reader.uint32()) };
+            message.operationId = reader.string();
             continue;
           }
           case 2: {
@@ -103,7 +107,7 @@ export const Event: MessageFns<Event> = {
               break;
             }
 
-            message.payload = { $case: "diaryChanged", value: DiaryChanged.decode(reader, reader.uint32()) };
+            message.payload = { $case: "diaryCreated", value: DiaryCreated.decode(reader, reader.uint32()) };
             continue;
           }
           case 3: {
@@ -111,7 +115,7 @@ export const Event: MessageFns<Event> = {
               break;
             }
 
-            message.payload = { $case: "diaryDeleted", value: DiaryDeleted.decode(reader, reader.uint32()) };
+            message.payload = { $case: "diaryChanged", value: DiaryChanged.decode(reader, reader.uint32()) };
             continue;
           }
           case 4: {
@@ -119,7 +123,7 @@ export const Event: MessageFns<Event> = {
               break;
             }
 
-            message.payload = { $case: "entryChanged", value: EntryChanged.decode(reader, reader.uint32()) };
+            message.payload = { $case: "diaryDeleted", value: DiaryDeleted.decode(reader, reader.uint32()) };
             continue;
           }
           case 5: {
@@ -127,7 +131,7 @@ export const Event: MessageFns<Event> = {
               break;
             }
 
-            message.payload = { $case: "entryDeleted", value: EntryDeleted.decode(reader, reader.uint32()) };
+            message.payload = { $case: "entryChanged", value: EntryChanged.decode(reader, reader.uint32()) };
             continue;
           }
           case 6: {
@@ -135,7 +139,7 @@ export const Event: MessageFns<Event> = {
               break;
             }
 
-            message.payload = { $case: "entryRestored", value: EntryRestored.decode(reader, reader.uint32()) };
+            message.payload = { $case: "entryDeleted", value: EntryDeleted.decode(reader, reader.uint32()) };
             continue;
           }
           case 7: {
@@ -143,7 +147,7 @@ export const Event: MessageFns<Event> = {
               break;
             }
 
-            message.payload = { $case: "topicChanged", value: TopicChanged.decode(reader, reader.uint32()) };
+            message.payload = { $case: "entryRestored", value: EntryRestored.decode(reader, reader.uint32()) };
             continue;
           }
           case 8: {
@@ -151,7 +155,7 @@ export const Event: MessageFns<Event> = {
               break;
             }
 
-            message.payload = { $case: "topicDeleted", value: TopicDeleted.decode(reader, reader.uint32()) };
+            message.payload = { $case: "topicChanged", value: TopicChanged.decode(reader, reader.uint32()) };
             continue;
           }
           case 9: {
@@ -159,7 +163,7 @@ export const Event: MessageFns<Event> = {
               break;
             }
 
-            message.payload = { $case: "topicRestored", value: TopicRestored.decode(reader, reader.uint32()) };
+            message.payload = { $case: "topicDeleted", value: TopicDeleted.decode(reader, reader.uint32()) };
             continue;
           }
           case 10: {
@@ -167,7 +171,7 @@ export const Event: MessageFns<Event> = {
               break;
             }
 
-            message.payload = { $case: "templateChanged", value: TemplateChanged.decode(reader, reader.uint32()) };
+            message.payload = { $case: "topicRestored", value: TopicRestored.decode(reader, reader.uint32()) };
             continue;
           }
           case 11: {
@@ -175,11 +179,19 @@ export const Event: MessageFns<Event> = {
               break;
             }
 
-            message.payload = { $case: "templateDeleted", value: TemplateDeleted.decode(reader, reader.uint32()) };
+            message.payload = { $case: "templateChanged", value: TemplateChanged.decode(reader, reader.uint32()) };
             continue;
           }
           case 12: {
             if (tag !== 98) {
+              break;
+            }
+
+            message.payload = { $case: "templateDeleted", value: TemplateDeleted.decode(reader, reader.uint32()) };
+            continue;
+          }
+          case 13: {
+            if (tag !== 106) {
               break;
             }
 

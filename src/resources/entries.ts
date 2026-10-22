@@ -7,13 +7,16 @@ import { NewVersion, Version } from "@/resources/version";
 import type { Entry } from "@/types";
 import {
   DeleteEntryRequest,
+  DeleteEntryResponse,
   Entry as ProtoEntry,
   GetEntryRequest,
   GetEntryResponse,
   ListEntriesRequest,
   ListEntriesResponse,
   PutEntryRequest,
+  PutEntryResponse,
   RestoreEntryRequest,
+  RestoreEntryResponse,
 } from "@/proto/entry";
 
 export interface PutEntryParams {
@@ -53,7 +56,7 @@ export class EntriesAPI {
       encrypted.key,
     );
 
-    await this.rpc.rpc(
+    const response = await this.rpc.rpc(
       "io.thingsdiary.v1.entry.put",
       {
         diaryId,
@@ -65,10 +68,12 @@ export class EntriesAPI {
         preview: { nonce: previewValue.nonce, data: previewValue.ciphertext },
       },
       PutEntryRequest,
+      PutEntryResponse,
     );
 
-    // TODO: Wait for the matching realtime event and return its payload instead of reading again.
-    return this.get(diaryId, entryId);
+    if (!response.entry) throw new Error("entry is missing from response");
+
+    return this.decrypt(response.entry, key.value);
   }
 
   async get(diaryId: string, entryId: string): Promise<Entry> {
@@ -100,8 +105,8 @@ export class EntriesAPI {
     );
 
     return {
-      entries: response!.entries.map((value) => this.decrypt(value, key.value)),
-      next_page_token: response!.page?.nextPageToken || undefined,
+      entries: response.entries.map((value) => this.decrypt(value, key.value)),
+      next_page_token: response.page?.nextPageToken || undefined,
     };
   }
 
@@ -110,19 +115,25 @@ export class EntriesAPI {
       "io.thingsdiary.v1.entry.delete",
       { diaryId, entryId, soft: options?.soft ?? true },
       DeleteEntryRequest,
+      DeleteEntryResponse,
     );
-
-    // TODO: Wait for the matching realtime event before returning.
   }
 
-  async restore(diaryId: string, entryId: string): Promise<void> {
-    await this.rpc.rpc(
+  async restore(diaryId: string, entryId: string): Promise<Entry> {
+    const keys = await this.keys.list(diaryId);
+    const response = await this.rpc.rpc(
       "io.thingsdiary.v1.entry.restore",
       { diaryId, entryId },
       RestoreEntryRequest,
+      RestoreEntryResponse,
     );
 
-    // TODO: Wait for the matching realtime event before returning.
+    if (!response.entry) throw new Error("entry is missing from response");
+
+    const key = keys.find((value) => value.id === response.entry?.encryption?.diaryKeyId);
+    if (!key) throw new Error("Entry encryption key is missing");
+
+    return this.decrypt(response.entry, key.value);
   }
 
   private decrypt(value: ProtoEntry, key: Uint8Array): Entry {

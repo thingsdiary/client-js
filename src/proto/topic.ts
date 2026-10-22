@@ -45,7 +45,6 @@ export interface ListTopicsResponse {
   page: PageInfo | undefined;
 }
 
-/** PutTopicRequest returns TopicChanged. */
 export interface PutTopicRequest {
   diaryId: string;
   topicId: string;
@@ -55,7 +54,10 @@ export interface PutTopicRequest {
   defaultTemplateId?: string | undefined;
 }
 
-/** DeleteTopicRequest returns TopicDeleted. */
+export interface PutTopicResponse {
+  topic: Topic | undefined;
+}
+
 export interface DeleteTopicRequest {
   diaryId: string;
   topicId: string;
@@ -63,10 +65,16 @@ export interface DeleteTopicRequest {
   deleteEntries: boolean;
 }
 
-/** RestoreTopicRequest returns TopicRestored. */
+export interface DeleteTopicResponse {
+}
+
 export interface RestoreTopicRequest {
   diaryId: string;
   topicId: string;
+}
+
+export interface RestoreTopicResponse {
+  topic: Topic | undefined;
 }
 
 export interface TopicChanged {
@@ -574,6 +582,52 @@ export const PutTopicRequest: MessageFns<PutTopicRequest> = {
   },
 };
 
+function createBasePutTopicResponse(): PutTopicResponse {
+  return { topic: undefined };
+}
+
+export const PutTopicResponse: MessageFns<PutTopicResponse> = {
+  encode(message: PutTopicResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.topic !== undefined) {
+      Topic.encode(message.topic, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): PutTopicResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const previousRecursionDepth = (reader as any).__tsProtoDecodeDepth ?? 0;
+    if (previousRecursionDepth >= 100) {
+      throw new globalThis.Error("protobuf decode recursion limit exceeded");
+    }
+    (reader as any).__tsProtoDecodeDepth = previousRecursionDepth + 1;
+    try {
+      const end = length === undefined ? reader.len : reader.pos + length;
+      const message = createBasePutTopicResponse();
+      while (reader.pos < end) {
+        const tag = reader.uint32();
+        switch (tag >>> 3) {
+          case 1: {
+            if (tag !== 10) {
+              break;
+            }
+
+            message.topic = Topic.decode(reader, reader.uint32());
+            continue;
+          }
+        }
+        if ((tag & 7) === 4 || tag === 0) {
+          break;
+        }
+        reader.skip(tag & 7);
+      }
+      return message;
+    } finally {
+      (reader as any).__tsProtoDecodeDepth = previousRecursionDepth;
+    }
+  },
+};
+
 function createBaseDeleteTopicRequest(): DeleteTopicRequest {
   return { diaryId: "", topicId: "", soft: undefined, deleteEntries: false };
 }
@@ -653,6 +707,41 @@ export const DeleteTopicRequest: MessageFns<DeleteTopicRequest> = {
   },
 };
 
+function createBaseDeleteTopicResponse(): DeleteTopicResponse {
+  return {};
+}
+
+export const DeleteTopicResponse: MessageFns<DeleteTopicResponse> = {
+  encode(_: DeleteTopicResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): DeleteTopicResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const previousRecursionDepth = (reader as any).__tsProtoDecodeDepth ?? 0;
+    if (previousRecursionDepth >= 100) {
+      throw new globalThis.Error("protobuf decode recursion limit exceeded");
+    }
+    (reader as any).__tsProtoDecodeDepth = previousRecursionDepth + 1;
+    try {
+      const end = length === undefined ? reader.len : reader.pos + length;
+      const message = createBaseDeleteTopicResponse();
+      while (reader.pos < end) {
+        const tag = reader.uint32();
+        switch (tag >>> 3) {
+        }
+        if ((tag & 7) === 4 || tag === 0) {
+          break;
+        }
+        reader.skip(tag & 7);
+      }
+      return message;
+    } finally {
+      (reader as any).__tsProtoDecodeDepth = previousRecursionDepth;
+    }
+  },
+};
+
 function createBaseRestoreTopicRequest(): RestoreTopicRequest {
   return { diaryId: "", topicId: "" };
 }
@@ -695,6 +784,52 @@ export const RestoreTopicRequest: MessageFns<RestoreTopicRequest> = {
             }
 
             message.topicId = reader.string();
+            continue;
+          }
+        }
+        if ((tag & 7) === 4 || tag === 0) {
+          break;
+        }
+        reader.skip(tag & 7);
+      }
+      return message;
+    } finally {
+      (reader as any).__tsProtoDecodeDepth = previousRecursionDepth;
+    }
+  },
+};
+
+function createBaseRestoreTopicResponse(): RestoreTopicResponse {
+  return { topic: undefined };
+}
+
+export const RestoreTopicResponse: MessageFns<RestoreTopicResponse> = {
+  encode(message: RestoreTopicResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.topic !== undefined) {
+      Topic.encode(message.topic, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): RestoreTopicResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const previousRecursionDepth = (reader as any).__tsProtoDecodeDepth ?? 0;
+    if (previousRecursionDepth >= 100) {
+      throw new globalThis.Error("protobuf decode recursion limit exceeded");
+    }
+    (reader as any).__tsProtoDecodeDepth = previousRecursionDepth + 1;
+    try {
+      const end = length === undefined ? reader.len : reader.pos + length;
+      const message = createBaseRestoreTopicResponse();
+      while (reader.pos < end) {
+        const tag = reader.uint32();
+        switch (tag >>> 3) {
+          case 1: {
+            if (tag !== 10) {
+              break;
+            }
+
+            message.topic = Topic.decode(reader, reader.uint32());
             continue;
           }
         }

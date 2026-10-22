@@ -12,13 +12,16 @@ import { NewVersion, Version } from "@/resources/version";
 import type { Diary } from "@/types";
 import {
   CreateDiaryRequest,
+  CreateDiaryResponse,
   DeleteDiaryRequest,
+  DeleteDiaryResponse,
   Diary as ProtoDiary,
   GetDiaryRequest,
   GetDiaryResponse,
   ListDiariesRequest,
   ListDiariesResponse,
   PutDiaryRequest,
+  PutDiaryResponse,
 } from "@/proto/diary";
 
 export interface CreateDiaryParams {
@@ -42,7 +45,7 @@ export class DiariesAPI {
     const entity = encryptDetails(params, diaryKey, "");
     const encryptedDiaryKey = encryptWithPublicKey(diaryKey, this.credentials.encryptionPublicKey);
 
-    await this.rpc.rpc(
+    const response = await this.rpc.rpc(
       "io.thingsdiary.v1.diary.create",
       {
         encryptedDiaryKey,
@@ -51,13 +54,12 @@ export class DiariesAPI {
         details: entity.details,
       },
       CreateDiaryRequest,
+      CreateDiaryResponse,
     );
 
-    // TODO: Wait for the matching realtime event and return its payload instead of reading again.
-    const diaries = await this.list();
-    if (!diaries.length) throw new Error("created diary was not returned by list");
+    if (!response.diary) throw new Error("diary is missing from response");
 
-    return diaries.reduce((a, b) => (a.created_at > b.created_at ? a : b));
+    return this.decrypt(response.diary);
   }
 
   async put(diaryId: string, params: PutDiaryParams): Promise<Diary> {
@@ -68,7 +70,7 @@ export class DiariesAPI {
       key.id,
     );
 
-    await this.rpc.rpc(
+    const response = await this.rpc.rpc(
       "io.thingsdiary.v1.diary.put",
       {
         diaryId,
@@ -77,16 +79,21 @@ export class DiariesAPI {
         details: encrypted.details,
       },
       PutDiaryRequest,
+      PutDiaryResponse,
     );
 
-    // TODO: Wait for the matching realtime event and return its payload instead of reading again.
-    return this.get(diaryId);
+    if (!response.diary) throw new Error("diary is missing from response");
+
+    return this.decrypt(response.diary);
   }
 
   async delete(diaryId: string): Promise<void> {
-    await this.rpc.rpc("io.thingsdiary.v1.diary.delete", { diaryId }, DeleteDiaryRequest);
-
-    // TODO: Wait for the matching realtime event before returning.
+    await this.rpc.rpc(
+      "io.thingsdiary.v1.diary.delete",
+      { diaryId },
+      DeleteDiaryRequest,
+      DeleteDiaryResponse,
+    );
   }
 
   async list(): Promise<Diary[]> {

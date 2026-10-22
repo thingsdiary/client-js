@@ -6,12 +6,15 @@ import { NewVersion, Version } from "@/resources/version";
 import type { Template } from "@/types";
 import {
   DeleteTemplateRequest,
+  DeleteTemplateResponse,
   GetTemplateRequest,
   GetTemplateResponse,
   ListTemplatesRequest,
   ListTemplatesResponse,
   PutTemplateRequest,
+  PutTemplateResponse,
   RestoreTemplateRequest,
+  RestoreTemplateResponse,
   Template as ProtoTemplate,
 } from "@/proto/template";
 
@@ -41,7 +44,7 @@ export class TemplatesAPI {
     const key = await this.keys.getActive(diaryId);
     const encrypted = encryptDetails({ content: params.content }, key.value, key.id);
 
-    await this.rpc.rpc(
+    const response = await this.rpc.rpc(
       "io.thingsdiary.v1.template.put",
       {
         diaryId,
@@ -51,10 +54,12 @@ export class TemplatesAPI {
         details: encrypted.details,
       },
       PutTemplateRequest,
+      PutTemplateResponse,
     );
 
-    // TODO: Wait for the matching realtime event and return its payload instead of reading again.
-    return this.get(diaryId, templateId);
+    if (!response.template) throw new Error("template is missing from response");
+
+    return this.decrypt(response.template, key.value);
   }
 
   async get(diaryId: string, templateId: string): Promise<Template> {
@@ -86,8 +91,8 @@ export class TemplatesAPI {
     );
 
     return {
-      templates: response!.templates.map((value) => this.decrypt(value, key.value)),
-      next_page_token: response!.page?.nextPageToken || undefined,
+      templates: response.templates.map((value) => this.decrypt(value, key.value)),
+      next_page_token: response.page?.nextPageToken || undefined,
     };
   }
 
@@ -100,19 +105,25 @@ export class TemplatesAPI {
       "io.thingsdiary.v1.template.delete",
       { diaryId, templateId, soft: options?.soft ?? true },
       DeleteTemplateRequest,
+      DeleteTemplateResponse,
     );
-
-    // TODO: Wait for the matching realtime event before returning.
   }
 
-  async restore(diaryId: string, templateId: string): Promise<void> {
-    await this.rpc.rpc(
+  async restore(diaryId: string, templateId: string): Promise<Template> {
+    const keys = await this.keys.list(diaryId);
+    const response = await this.rpc.rpc(
       "io.thingsdiary.v1.template.restore",
       { diaryId, templateId },
       RestoreTemplateRequest,
+      RestoreTemplateResponse,
     );
 
-    // TODO: Wait for the matching realtime event before returning.
+    if (!response.template) throw new Error("template is missing from response");
+
+    const key = keys.find((value) => value.id === response.template?.encryption?.diaryKeyId);
+    if (!key) throw new Error("Template encryption key is missing");
+
+    return this.decrypt(response.template, key.value);
   }
 
   private decrypt(value: ProtoTemplate, key: Uint8Array): Template {

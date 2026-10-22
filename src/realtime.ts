@@ -45,6 +45,17 @@ export class RealtimeClient {
     this.client = undefined;
   }
 
+  async rpc<Request>(
+    method: string,
+    request: Request,
+    requestCodec: MessageCodec<Request>,
+  ): Promise<void>;
+  async rpc<Request, Response>(
+    method: string,
+    request: Request,
+    requestCodec: MessageCodec<Request>,
+    responseCodec: MessageCodec<Response>,
+  ): Promise<Response>;
   async rpc<Request, Response>(
     method: string,
     request: Request,

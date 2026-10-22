@@ -23,15 +23,16 @@ export interface Diary {
   details: EncryptedData | undefined;
 }
 
-/**
- * Centrifugo methods: io.thingsdiary.v1.diary.{create,get,list,put,delete}.
- * CreateDiaryRequest returns DiaryCreated.
- */
+/** Centrifugo methods: io.thingsdiary.v1.diary.{create,get,list,put,delete}. */
 export interface CreateDiaryRequest {
   encryptedDiaryKey: Uint8Array;
   encryptedKeyNonce: Uint8Array;
   encryptedKeyData: Uint8Array;
   details: EncryptedData | undefined;
+}
+
+export interface CreateDiaryResponse {
+  diary: Diary | undefined;
 }
 
 export interface DiaryCreated {
@@ -57,12 +58,15 @@ export interface ListDiariesResponse {
   page: PageInfo | undefined;
 }
 
-/** PutDiaryRequest returns DiaryChanged. */
 export interface PutDiaryRequest {
   diaryId: string;
   version: bigint;
   encryption: Encryption | undefined;
   details: EncryptedData | undefined;
+}
+
+export interface PutDiaryResponse {
+  diary: Diary | undefined;
 }
 
 export interface DiaryChanged {
@@ -71,9 +75,11 @@ export interface DiaryChanged {
   diary: Diary | undefined;
 }
 
-/** DeleteDiaryRequest returns DiaryDeleted. */
 export interface DeleteDiaryRequest {
   diaryId: string;
+}
+
+export interface DeleteDiaryResponse {
 }
 
 export interface DiaryDeleted {
@@ -276,6 +282,52 @@ export const CreateDiaryRequest: MessageFns<CreateDiaryRequest> = {
             }
 
             message.details = EncryptedData.decode(reader, reader.uint32());
+            continue;
+          }
+        }
+        if ((tag & 7) === 4 || tag === 0) {
+          break;
+        }
+        reader.skip(tag & 7);
+      }
+      return message;
+    } finally {
+      (reader as any).__tsProtoDecodeDepth = previousRecursionDepth;
+    }
+  },
+};
+
+function createBaseCreateDiaryResponse(): CreateDiaryResponse {
+  return { diary: undefined };
+}
+
+export const CreateDiaryResponse: MessageFns<CreateDiaryResponse> = {
+  encode(message: CreateDiaryResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.diary !== undefined) {
+      Diary.encode(message.diary, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): CreateDiaryResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const previousRecursionDepth = (reader as any).__tsProtoDecodeDepth ?? 0;
+    if (previousRecursionDepth >= 100) {
+      throw new globalThis.Error("protobuf decode recursion limit exceeded");
+    }
+    (reader as any).__tsProtoDecodeDepth = previousRecursionDepth + 1;
+    try {
+      const end = length === undefined ? reader.len : reader.pos + length;
+      const message = createBaseCreateDiaryResponse();
+      while (reader.pos < end) {
+        const tag = reader.uint32();
+        switch (tag >>> 3) {
+          case 1: {
+            if (tag !== 10) {
+              break;
+            }
+
+            message.diary = Diary.decode(reader, reader.uint32());
             continue;
           }
         }
@@ -636,6 +688,52 @@ export const PutDiaryRequest: MessageFns<PutDiaryRequest> = {
   },
 };
 
+function createBasePutDiaryResponse(): PutDiaryResponse {
+  return { diary: undefined };
+}
+
+export const PutDiaryResponse: MessageFns<PutDiaryResponse> = {
+  encode(message: PutDiaryResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.diary !== undefined) {
+      Diary.encode(message.diary, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): PutDiaryResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const previousRecursionDepth = (reader as any).__tsProtoDecodeDepth ?? 0;
+    if (previousRecursionDepth >= 100) {
+      throw new globalThis.Error("protobuf decode recursion limit exceeded");
+    }
+    (reader as any).__tsProtoDecodeDepth = previousRecursionDepth + 1;
+    try {
+      const end = length === undefined ? reader.len : reader.pos + length;
+      const message = createBasePutDiaryResponse();
+      while (reader.pos < end) {
+        const tag = reader.uint32();
+        switch (tag >>> 3) {
+          case 1: {
+            if (tag !== 10) {
+              break;
+            }
+
+            message.diary = Diary.decode(reader, reader.uint32());
+            continue;
+          }
+        }
+        if ((tag & 7) === 4 || tag === 0) {
+          break;
+        }
+        reader.skip(tag & 7);
+      }
+      return message;
+    } finally {
+      (reader as any).__tsProtoDecodeDepth = previousRecursionDepth;
+    }
+  },
+};
+
 function createBaseDiaryChanged(): DiaryChanged {
   return { eventId: "", occurredAt: undefined, diary: undefined };
 }
@@ -737,6 +835,41 @@ export const DeleteDiaryRequest: MessageFns<DeleteDiaryRequest> = {
             message.diaryId = reader.string();
             continue;
           }
+        }
+        if ((tag & 7) === 4 || tag === 0) {
+          break;
+        }
+        reader.skip(tag & 7);
+      }
+      return message;
+    } finally {
+      (reader as any).__tsProtoDecodeDepth = previousRecursionDepth;
+    }
+  },
+};
+
+function createBaseDeleteDiaryResponse(): DeleteDiaryResponse {
+  return {};
+}
+
+export const DeleteDiaryResponse: MessageFns<DeleteDiaryResponse> = {
+  encode(_: DeleteDiaryResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): DeleteDiaryResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const previousRecursionDepth = (reader as any).__tsProtoDecodeDepth ?? 0;
+    if (previousRecursionDepth >= 100) {
+      throw new globalThis.Error("protobuf decode recursion limit exceeded");
+    }
+    (reader as any).__tsProtoDecodeDepth = previousRecursionDepth + 1;
+    try {
+      const end = length === undefined ? reader.len : reader.pos + length;
+      const message = createBaseDeleteDiaryResponse();
+      while (reader.pos < end) {
+        const tag = reader.uint32();
+        switch (tag >>> 3) {
         }
         if ((tag & 7) === 4 || tag === 0) {
           break;

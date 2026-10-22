@@ -6,12 +6,15 @@ import { NewVersion, Version } from "@/resources/version";
 import type { Topic } from "@/types";
 import {
   DeleteTopicRequest,
+  DeleteTopicResponse,
   GetTopicRequest,
   GetTopicResponse,
   ListTopicsRequest,
   ListTopicsResponse,
   PutTopicRequest,
+  PutTopicResponse,
   RestoreTopicRequest,
+  RestoreTopicResponse,
   Topic as ProtoTopic,
 } from "@/proto/topic";
 
@@ -49,7 +52,7 @@ export class TopicsAPI {
       key.id,
     );
 
-    await this.rpc.rpc(
+    const response = await this.rpc.rpc(
       "io.thingsdiary.v1.topic.put",
       {
         diaryId,
@@ -61,10 +64,12 @@ export class TopicsAPI {
         details: encrypted.details,
       },
       PutTopicRequest,
+      PutTopicResponse,
     );
 
-    // TODO: Wait for the matching realtime event and return its payload instead of reading again.
-    return this.get(diaryId, topicId);
+    if (!response.topic) throw new Error("topic is missing from response");
+
+    return this.decrypt(response.topic, key.value);
   }
 
   async get(diaryId: string, topicId: string): Promise<Topic> {
@@ -96,8 +101,8 @@ export class TopicsAPI {
     );
 
     return {
-      topics: response!.topics.map((value) => this.decrypt(value, key.value)),
-      next_page_token: response!.page?.nextPageToken || undefined,
+      topics: response.topics.map((value) => this.decrypt(value, key.value)),
+      next_page_token: response.page?.nextPageToken || undefined,
     };
   }
 
@@ -111,19 +116,25 @@ export class TopicsAPI {
         deleteEntries: options?.deleteEntries ?? false,
       },
       DeleteTopicRequest,
+      DeleteTopicResponse,
     );
-
-    // TODO: Wait for the matching realtime event before returning.
   }
 
-  async restore(diaryId: string, topicId: string): Promise<void> {
-    await this.rpc.rpc(
+  async restore(diaryId: string, topicId: string): Promise<Topic> {
+    const keys = await this.keys.list(diaryId);
+    const response = await this.rpc.rpc(
       "io.thingsdiary.v1.topic.restore",
       { diaryId, topicId },
       RestoreTopicRequest,
+      RestoreTopicResponse,
     );
 
-    // TODO: Wait for the matching realtime event before returning.
+    if (!response.topic) throw new Error("topic is missing from response");
+
+    const key = keys.find((value) => value.id === response.topic?.encryption?.diaryKeyId);
+    if (!key) throw new Error("Topic encryption key is missing");
+
+    return this.decrypt(response.topic, key.value);
   }
 
   private decrypt(value: ProtoTopic, key: Uint8Array): Topic {
