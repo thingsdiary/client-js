@@ -15,3 +15,19 @@ Official TypeScript/JavaScript client for thingsdiary cloud API with built-in en
 ```bash
 npm install @thingsdiary/client
 ```
+
+After registration or login, create the client with the HTTP auth token and
+derived credentials, then open the realtime connection before calling resource
+methods:
+
+```ts
+const client = createClient({ token, credentials });
+await client.connect();
+
+const diaries = await client.diaries.list();
+
+client.close();
+```
+
+Authentication and realtime-token requests use HTTP. Diary, key, entry, topic,
+and template operations use protobuf RPC over the realtime connection.

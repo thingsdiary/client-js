@@ -1,33 +1,14 @@
-import { describe, expect, it, beforeAll } from "vitest";
 import { randomUUID } from "node:crypto";
-import { HttpClient } from "@/http";
-import { register } from "@/auth";
-import { deriveCredentials, generateSalt } from "@/crypto/credentials";
-import { createClient } from "@/client";
-import type { Credentials } from "@/crypto/credentials";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { Client } from "@/client";
+import { newTestClient } from "@/testing/client";
 
 describe("Topics API", () => {
   let client: Client;
-  let credentials: Credentials;
-  let token: string;
   let diaryId: string;
 
   beforeAll(async () => {
-    const seedPhrase = "test seed phrase for topics " + randomUUID();
-    const kdfSalt = generateSalt();
-    credentials = deriveCredentials(seedPhrase, kdfSalt);
-
-    const httpClient = new HttpClient("http://127.0.0.1:8081/api");
-    const email = `${randomUUID()}@thingsdiary.io`;
-
-    token = await register(email, "password", credentials, kdfSalt, httpClient);
-
-    client = createClient({
-      token,
-      credentials,
-      baseUrl: "http://127.0.0.1:8081/api",
-    });
+    client = await newTestClient();
 
     const diary = await client.diaries.create({
       title: "Test Diary for Topics",
@@ -35,6 +16,8 @@ describe("Topics API", () => {
     });
     diaryId = diary.id;
   });
+
+  afterAll(() => client.close());
 
   it("should create a new topic", async () => {
     const topic = await client.topics.create(diaryId, {
@@ -113,7 +96,7 @@ describe("Topics API", () => {
     expect(updated.version).toBeGreaterThan(topic.version);
   });
 
-  it("should delete a topic", async () => {
+  it("should soft-delete and restore a topic", async () => {
     const created = await client.topics.create(diaryId, {
       title: "Topic to Delete",
       description: "This topic will be deleted",
@@ -122,15 +105,13 @@ describe("Topics API", () => {
 
     await client.topics.delete(diaryId, created.id);
 
-    // Try to get the deleted topic (should fail or return empty)
-    try {
-      await client.topics.get(diaryId, created.id);
-      // If we reach here, the topic wasn't deleted
-      expect.fail("Topic should have been deleted");
-    } catch (error) {
-      // Expected to throw an error
-      expect(error).toBeDefined();
-    }
+    const deleted = await client.topics.get(diaryId, created.id);
+    expect(deleted.deleted_at).toBeInstanceOf(Date);
+    expect(deleted.removed_at).toBeUndefined();
+
+    const restored = await client.topics.restore(diaryId, created.id);
+    expect(restored.deleted_at).toBeUndefined();
+    expect(restored.removed_at).toBeUndefined();
   });
 
   it("should delete topic without deleting entries (default behavior)", async () => {

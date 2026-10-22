@@ -8,8 +8,7 @@ function buildUserAgent(): string {
 
   // Browser
   if (typeof window !== "undefined" && typeof document !== "undefined") {
-    const platform =
-      typeof navigator !== "undefined" ? navigator.platform : "unknown";
+    const platform = typeof navigator !== "undefined" ? navigator.platform : "unknown";
     return `thingsdiary-client/${version} (browser; ${platform})`;
   }
 

@@ -66,8 +66,7 @@ describe("generateSalt", () => {
 
   it("should generate ASCII-safe characters only", () => {
     const salt = generateSalt();
-    const validChars =
-      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    const validChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
     for (const char of salt) {
       expect(validChars).toContain(char);
     }

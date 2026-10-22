@@ -26,8 +26,7 @@ const HKDF_INFO_ENCRYPTION = encoder.encode("thingsdiary-x25519-v1");
  * @returns ASCII-safe string salt
  */
 export function generateSalt(length = 32): string {
-  const alphabet =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
   const bytes = crypto.getRandomValues(new Uint8Array(length));
   return Array.from(bytes, (b) => alphabet[b % alphabet.length]).join("");
 }
@@ -50,10 +49,7 @@ export function generateSalt(length = 32): string {
  * @param salt - Salt for PBKDF2 (ASCII-safe string)
  * @returns Credentials object with encryption and signing key pairs
  */
-export function deriveCredentials(
-  seedPhrase: string,
-  salt: string,
-): Credentials {
+export function deriveCredentials(seedPhrase: string, salt: string): Credentials {
   // Step 1: Derive master seed from seedPhrase using PBKDF2
   const masterSeed = pbkdf2(sha256, seedPhrase, salt, {
     c: PBKDF2_ITERATIONS,
@@ -62,20 +58,8 @@ export function deriveCredentials(
 
   // Step 2: Derive domain-separated keys using HKDF
   // Using undefined salt for HKDF since PBKDF2 already applied the salt
-  const signingPrivateKey = hkdf(
-    sha256,
-    masterSeed,
-    undefined,
-    HKDF_INFO_SIGNING,
-    32,
-  );
-  const encryptionPrivateKey = hkdf(
-    sha256,
-    masterSeed,
-    undefined,
-    HKDF_INFO_ENCRYPTION,
-    32,
-  );
+  const signingPrivateKey = hkdf(sha256, masterSeed, undefined, HKDF_INFO_SIGNING, 32);
+  const encryptionPrivateKey = hkdf(sha256, masterSeed, undefined, HKDF_INFO_ENCRYPTION, 32);
 
   return {
     encryptionPublicKey: x25519.getPublicKey(encryptionPrivateKey),

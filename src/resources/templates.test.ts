@@ -1,33 +1,13 @@
-import { describe, expect, it, beforeAll } from "vitest";
-import { randomUUID } from "node:crypto";
-import { HttpClient } from "@/http";
-import { register } from "@/auth";
-import { deriveCredentials, generateSalt } from "@/crypto/credentials";
-import { createClient } from "@/client";
-import type { Credentials } from "@/crypto/credentials";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { Client } from "@/client";
+import { newTestClient } from "@/testing/client";
 
 describe("Templates API", () => {
   let client: Client;
-  let credentials: Credentials;
-  let token: string;
   let diaryId: string;
 
   beforeAll(async () => {
-    const seedPhrase = "test seed phrase for templates " + randomUUID();
-    const kdfSalt = generateSalt();
-    credentials = deriveCredentials(seedPhrase, kdfSalt);
-
-    const httpClient = new HttpClient("http://127.0.0.1:8081/api");
-    const email = `${randomUUID()}@thingsdiary.io`;
-
-    token = await register(email, "password", credentials, kdfSalt, httpClient);
-
-    client = createClient({
-      token,
-      credentials,
-      baseUrl: "http://127.0.0.1:8081/api",
-    });
+    client = await newTestClient();
 
     // Create a diary for template tests
     const diary = await client.diaries.create({
@@ -36,6 +16,8 @@ describe("Templates API", () => {
     });
     diaryId = diary.id;
   });
+
+  afterAll(() => client.close());
 
   it("should create a new template", async () => {
     const template = await client.templates.create(diaryId, {
@@ -97,22 +79,20 @@ describe("Templates API", () => {
     expect(updated.version).toBeGreaterThan(template.version);
   });
 
-  it("should delete a template", async () => {
+  it("should soft-delete and restore a template", async () => {
     const created = await client.templates.create(diaryId, {
       content: "Template to Delete",
     });
 
     await client.templates.delete(diaryId, created.id);
 
-    // Try to get the deleted template (should fail or return empty)
-    try {
-      await client.templates.get(diaryId, created.id);
-      // If we reach here, the template wasn't deleted
-      expect.fail("Template should have been deleted");
-    } catch (error) {
-      // Expected to throw an error
-      expect(error).toBeDefined();
-    }
+    const deleted = await client.templates.get(diaryId, created.id);
+    expect(deleted.deleted_at).toBeInstanceOf(Date);
+    expect(deleted.removed_at).toBeUndefined();
+
+    const restored = await client.templates.restore(diaryId, created.id);
+    expect(restored.deleted_at).toBeUndefined();
+    expect(restored.removed_at).toBeUndefined();
   });
 
   it("should encrypt and decrypt template data correctly", async () => {
