@@ -17,6 +17,8 @@ export interface Entry {
   preview_hidden: boolean;
   created_at: Date;
   updated_at: Date;
+  deleted_at?: Date;
+  removed_at?: Date;
   version: number;
 }
 
@@ -29,6 +31,8 @@ export interface Topic {
   default_template_id?: string;
   created_at: Date;
   updated_at: Date;
+  deleted_at?: Date;
+  removed_at?: Date;
   version: number;
 }
 
@@ -38,6 +42,8 @@ export interface Template {
   content: string;
   created_at: Date;
   updated_at: Date;
+  deleted_at?: Date;
+  removed_at?: Date;
   version: number;
 }
 

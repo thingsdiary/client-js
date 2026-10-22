@@ -81,19 +81,22 @@ describe("Entries API", () => {
     expect(updated.version).toBeGreaterThan(entry.version);
   });
 
-  it("should delete an entry", async () => {
+  it("should soft-delete and restore an entry", async () => {
     const created = await client.entries.create(diaryId, {
       content: "Entry to Delete",
     });
 
     await client.entries.delete(diaryId, created.id);
 
-    try {
-      await client.entries.get(diaryId, created.id);
-      expect.fail("Entry should have been deleted");
-    } catch (error) {
-      expect(error).toBeDefined();
-    }
+    const deleted = await client.entries.get(diaryId, created.id);
+    expect(deleted.deleted_at).toBeInstanceOf(Date);
+    expect(deleted.removed_at).toBeUndefined();
+
+    await client.entries.restore(diaryId, created.id);
+
+    const restored = await client.entries.get(diaryId, created.id);
+    expect(restored.deleted_at).toBeUndefined();
+    expect(restored.removed_at).toBeUndefined();
   });
 
   it("should encrypt and decrypt entry data correctly", async () => {

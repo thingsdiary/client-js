@@ -96,7 +96,7 @@ describe("Topics API", () => {
     expect(updated.version).toBeGreaterThan(topic.version);
   });
 
-  it("should delete a topic", async () => {
+  it("should soft-delete and restore a topic", async () => {
     const created = await client.topics.create(diaryId, {
       title: "Topic to Delete",
       description: "This topic will be deleted",
@@ -105,15 +105,15 @@ describe("Topics API", () => {
 
     await client.topics.delete(diaryId, created.id);
 
-    // Try to get the deleted topic (should fail or return empty)
-    try {
-      await client.topics.get(diaryId, created.id);
-      // If we reach here, the topic wasn't deleted
-      expect.fail("Topic should have been deleted");
-    } catch (error) {
-      // Expected to throw an error
-      expect(error).toBeDefined();
-    }
+    const deleted = await client.topics.get(diaryId, created.id);
+    expect(deleted.deleted_at).toBeInstanceOf(Date);
+    expect(deleted.removed_at).toBeUndefined();
+
+    await client.topics.restore(diaryId, created.id);
+
+    const restored = await client.topics.get(diaryId, created.id);
+    expect(restored.deleted_at).toBeUndefined();
+    expect(restored.removed_at).toBeUndefined();
   });
 
   it("should delete topic without deleting entries (default behavior)", async () => {

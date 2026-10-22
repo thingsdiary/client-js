@@ -1,7 +1,7 @@
 import { RealtimeClient } from "@/realtime";
 import { KeysAPI } from "@/resources/keys";
 import { decryptDetails, encryptDetails } from "@/resources/details";
-import { timestampToDate } from "@/utils/protobuf/timestamp";
+import { optionalTimestampToDate, timestampToDate } from "@/utils/protobuf/timestamp";
 import { NewVersion, Version } from "@/resources/version";
 import type { Topic } from "@/types";
 import {
@@ -28,6 +28,7 @@ export interface PutTopicParams extends CreateTopicParams {
 
 export interface DeleteTopicOptions {
   deleteEntries?: boolean;
+  soft?: boolean;
 }
 
 export class TopicsAPI {
@@ -108,6 +109,7 @@ export class TopicsAPI {
       {
         diaryId,
         topicId,
+        soft: options?.soft ?? true,
         deleteEntries: options?.deleteEntries ?? false,
       },
       DeleteTopicRequest,
@@ -139,6 +141,8 @@ export class TopicsAPI {
       default_template_id: value.defaultTemplateId,
       created_at: timestampToDate(value.createdAt),
       updated_at: timestampToDate(value.updatedAt),
+      deleted_at: optionalTimestampToDate(value.deletedAt),
+      removed_at: optionalTimestampToDate(value.removedAt),
       version: Number(value.version),
     };
   }

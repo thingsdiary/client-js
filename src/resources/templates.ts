@@ -1,7 +1,7 @@
 import { RealtimeClient } from "@/realtime";
 import { KeysAPI } from "@/resources/keys";
 import { decryptDetails, encryptDetails } from "@/resources/details";
-import { timestampToDate } from "@/utils/protobuf/timestamp";
+import { optionalTimestampToDate, timestampToDate } from "@/utils/protobuf/timestamp";
 import { NewVersion, Version } from "@/resources/version";
 import type { Template } from "@/types";
 import {
@@ -21,6 +21,10 @@ export interface CreateTemplateParams {
 
 export interface PutTemplateParams extends CreateTemplateParams {
   version?: Version;
+}
+
+export interface DeleteTemplateOptions {
+  soft?: boolean;
 }
 
 export class TemplatesAPI {
@@ -88,11 +92,15 @@ export class TemplatesAPI {
     };
   }
 
-  async delete(diaryId: string, templateId: string): Promise<void> {
+  async delete(
+    diaryId: string,
+    templateId: string,
+    options?: DeleteTemplateOptions,
+  ): Promise<void> {
     // TODO: Sign the encoded request with credentials.signingPrivateKey before sending it.
     await this.rpc.rpc(
       "io.thingsdiary.v1.template.delete",
-      { diaryId, templateId },
+      { diaryId, templateId, soft: options?.soft ?? true },
       DeleteTemplateRequest,
     );
 
@@ -119,6 +127,8 @@ export class TemplatesAPI {
       content: details.content,
       created_at: timestampToDate(value.createdAt),
       updated_at: timestampToDate(value.updatedAt),
+      deleted_at: optionalTimestampToDate(value.deletedAt),
+      removed_at: optionalTimestampToDate(value.removedAt),
       version: Number(value.version),
     };
   }

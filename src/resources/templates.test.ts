@@ -79,22 +79,22 @@ describe("Templates API", () => {
     expect(updated.version).toBeGreaterThan(template.version);
   });
 
-  it("should delete a template", async () => {
+  it("should soft-delete and restore a template", async () => {
     const created = await client.templates.create(diaryId, {
       content: "Template to Delete",
     });
 
     await client.templates.delete(diaryId, created.id);
 
-    // Try to get the deleted template (should fail or return empty)
-    try {
-      await client.templates.get(diaryId, created.id);
-      // If we reach here, the template wasn't deleted
-      expect.fail("Template should have been deleted");
-    } catch (error) {
-      // Expected to throw an error
-      expect(error).toBeDefined();
-    }
+    const deleted = await client.templates.get(diaryId, created.id);
+    expect(deleted.deleted_at).toBeInstanceOf(Date);
+    expect(deleted.removed_at).toBeUndefined();
+
+    await client.templates.restore(diaryId, created.id);
+
+    const restored = await client.templates.get(diaryId, created.id);
+    expect(restored.deleted_at).toBeUndefined();
+    expect(restored.removed_at).toBeUndefined();
   });
 
   it("should encrypt and decrypt template data correctly", async () => {

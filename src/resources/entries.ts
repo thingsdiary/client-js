@@ -2,7 +2,7 @@ import { encryptWithSymmetricKey } from "@/crypto/encryption";
 import { RealtimeClient } from "@/realtime";
 import { KeysAPI } from "@/resources/keys";
 import { decryptDetails, encryptDetails } from "@/resources/details";
-import { timestampToDate } from "@/utils/protobuf/timestamp";
+import { optionalTimestampToDate, timestampToDate } from "@/utils/protobuf/timestamp";
 import { NewVersion, Version } from "@/resources/version";
 import type { Entry } from "@/types";
 import {
@@ -23,6 +23,10 @@ export interface PutEntryParams {
   bookmarked?: boolean;
   preview_hidden?: boolean;
   version?: Version;
+}
+
+export interface DeleteEntryOptions {
+  soft?: boolean;
 }
 
 export class EntriesAPI {
@@ -102,9 +106,13 @@ export class EntriesAPI {
     };
   }
 
-  async delete(diaryId: string, entryId: string): Promise<void> {
+  async delete(diaryId: string, entryId: string, options?: DeleteEntryOptions): Promise<void> {
     // TODO: Sign the encoded request with credentials.signingPrivateKey before sending it.
-    await this.rpc.rpc("io.thingsdiary.v1.entry.delete", { diaryId, entryId }, DeleteEntryRequest);
+    await this.rpc.rpc(
+      "io.thingsdiary.v1.entry.delete",
+      { diaryId, entryId, soft: options?.soft ?? true },
+      DeleteEntryRequest,
+    );
 
     // TODO: Wait for the matching realtime event before returning.
   }
@@ -133,6 +141,8 @@ export class EntriesAPI {
       preview_hidden: details.preview_hidden,
       created_at: timestampToDate(value.createdAt),
       updated_at: timestampToDate(value.updatedAt),
+      deleted_at: optionalTimestampToDate(value.deletedAt),
+      removed_at: optionalTimestampToDate(value.removedAt),
       version: Number(value.version),
     };
   }
