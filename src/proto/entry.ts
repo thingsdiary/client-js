@@ -66,8 +66,7 @@ export interface DeleteEntryRequest {
   soft?: boolean | undefined;
 }
 
-export interface DeleteEntryResponse {
-}
+export interface DeleteEntryResponse {}
 
 export interface RestoreEntryRequest {
   diaryId: string;
@@ -122,7 +121,9 @@ export const Entry: MessageFns<Entry> = {
     }
     if (message.version !== 0n) {
       if (BigInt.asUintN(64, message.version) !== message.version) {
-        throw new globalThis.Error("value provided for field message.version of type uint64 too large");
+        throw new globalThis.Error(
+          "value provided for field message.version of type uint64 too large",
+        );
       }
       writer.uint32(24).uint64(message.version);
     }
@@ -506,7 +507,9 @@ export const PutEntryRequest: MessageFns<PutEntryRequest> = {
     }
     if (message.version !== 0n) {
       if (BigInt.asUintN(64, message.version) !== message.version) {
-        throw new globalThis.Error("value provided for field message.version of type uint64 too large");
+        throw new globalThis.Error(
+          "value provided for field message.version of type uint64 too large",
+        );
       }
       writer.uint32(24).uint64(message.version);
     }

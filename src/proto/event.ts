@@ -107,7 +107,10 @@ export const Event: MessageFns<Event> = {
               break;
             }
 
-            message.payload = { $case: "diaryCreated", value: DiaryCreated.decode(reader, reader.uint32()) };
+            message.payload = {
+              $case: "diaryCreated",
+              value: DiaryCreated.decode(reader, reader.uint32()),
+            };
             continue;
           }
           case 3: {
@@ -115,7 +118,10 @@ export const Event: MessageFns<Event> = {
               break;
             }
 
-            message.payload = { $case: "diaryChanged", value: DiaryChanged.decode(reader, reader.uint32()) };
+            message.payload = {
+              $case: "diaryChanged",
+              value: DiaryChanged.decode(reader, reader.uint32()),
+            };
             continue;
           }
           case 4: {
@@ -123,7 +129,10 @@ export const Event: MessageFns<Event> = {
               break;
             }
 
-            message.payload = { $case: "diaryDeleted", value: DiaryDeleted.decode(reader, reader.uint32()) };
+            message.payload = {
+              $case: "diaryDeleted",
+              value: DiaryDeleted.decode(reader, reader.uint32()),
+            };
             continue;
           }
           case 5: {
@@ -131,7 +140,10 @@ export const Event: MessageFns<Event> = {
               break;
             }
 
-            message.payload = { $case: "entryChanged", value: EntryChanged.decode(reader, reader.uint32()) };
+            message.payload = {
+              $case: "entryChanged",
+              value: EntryChanged.decode(reader, reader.uint32()),
+            };
             continue;
           }
           case 6: {
@@ -139,7 +151,10 @@ export const Event: MessageFns<Event> = {
               break;
             }
 
-            message.payload = { $case: "entryDeleted", value: EntryDeleted.decode(reader, reader.uint32()) };
+            message.payload = {
+              $case: "entryDeleted",
+              value: EntryDeleted.decode(reader, reader.uint32()),
+            };
             continue;
           }
           case 7: {
@@ -147,7 +162,10 @@ export const Event: MessageFns<Event> = {
               break;
             }
 
-            message.payload = { $case: "entryRestored", value: EntryRestored.decode(reader, reader.uint32()) };
+            message.payload = {
+              $case: "entryRestored",
+              value: EntryRestored.decode(reader, reader.uint32()),
+            };
             continue;
           }
           case 8: {
@@ -155,7 +173,10 @@ export const Event: MessageFns<Event> = {
               break;
             }
 
-            message.payload = { $case: "topicChanged", value: TopicChanged.decode(reader, reader.uint32()) };
+            message.payload = {
+              $case: "topicChanged",
+              value: TopicChanged.decode(reader, reader.uint32()),
+            };
             continue;
           }
           case 9: {
@@ -163,7 +184,10 @@ export const Event: MessageFns<Event> = {
               break;
             }
 
-            message.payload = { $case: "topicDeleted", value: TopicDeleted.decode(reader, reader.uint32()) };
+            message.payload = {
+              $case: "topicDeleted",
+              value: TopicDeleted.decode(reader, reader.uint32()),
+            };
             continue;
           }
           case 10: {
@@ -171,7 +195,10 @@ export const Event: MessageFns<Event> = {
               break;
             }
 
-            message.payload = { $case: "topicRestored", value: TopicRestored.decode(reader, reader.uint32()) };
+            message.payload = {
+              $case: "topicRestored",
+              value: TopicRestored.decode(reader, reader.uint32()),
+            };
             continue;
           }
           case 11: {
@@ -179,7 +206,10 @@ export const Event: MessageFns<Event> = {
               break;
             }
 
-            message.payload = { $case: "templateChanged", value: TemplateChanged.decode(reader, reader.uint32()) };
+            message.payload = {
+              $case: "templateChanged",
+              value: TemplateChanged.decode(reader, reader.uint32()),
+            };
             continue;
           }
           case 12: {
@@ -187,7 +217,10 @@ export const Event: MessageFns<Event> = {
               break;
             }
 
-            message.payload = { $case: "templateDeleted", value: TemplateDeleted.decode(reader, reader.uint32()) };
+            message.payload = {
+              $case: "templateDeleted",
+              value: TemplateDeleted.decode(reader, reader.uint32()),
+            };
             continue;
           }
           case 13: {
@@ -195,7 +228,10 @@ export const Event: MessageFns<Event> = {
               break;
             }
 
-            message.payload = { $case: "templateRestored", value: TemplateRestored.decode(reader, reader.uint32()) };
+            message.payload = {
+              $case: "templateRestored",
+              value: TemplateRestored.decode(reader, reader.uint32()),
+            };
             continue;
           }
         }

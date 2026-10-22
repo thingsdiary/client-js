@@ -65,8 +65,7 @@ export interface DeleteTopicRequest {
   deleteEntries: boolean;
 }
 
-export interface DeleteTopicResponse {
-}
+export interface DeleteTopicResponse {}
 
 export interface RestoreTopicRequest {
   diaryId: string;
@@ -120,7 +119,9 @@ export const Topic: MessageFns<Topic> = {
     }
     if (message.version !== 0n) {
       if (BigInt.asUintN(64, message.version) !== message.version) {
-        throw new globalThis.Error("value provided for field message.version of type uint64 too large");
+        throw new globalThis.Error(
+          "value provided for field message.version of type uint64 too large",
+        );
       }
       writer.uint32(24).uint64(message.version);
     }
@@ -492,7 +493,9 @@ export const PutTopicRequest: MessageFns<PutTopicRequest> = {
     }
     if (message.version !== 0n) {
       if (BigInt.asUintN(64, message.version) !== message.version) {
-        throw new globalThis.Error("value provided for field message.version of type uint64 too large");
+        throw new globalThis.Error(
+          "value provided for field message.version of type uint64 too large",
+        );
       }
       writer.uint32(24).uint64(message.version);
     }
