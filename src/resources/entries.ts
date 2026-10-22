@@ -53,7 +53,6 @@ export class EntriesAPI {
       encrypted.key,
     );
 
-    // TODO: Sign the encoded request with credentials.signingPrivateKey before sending it.
     await this.rpc.rpc(
       "io.thingsdiary.v1.entry.put",
       {
@@ -107,7 +106,6 @@ export class EntriesAPI {
   }
 
   async delete(diaryId: string, entryId: string, options?: DeleteEntryOptions): Promise<void> {
-    // TODO: Sign the encoded request with credentials.signingPrivateKey before sending it.
     await this.rpc.rpc(
       "io.thingsdiary.v1.entry.delete",
       { diaryId, entryId, soft: options?.soft ?? true },
@@ -118,7 +116,6 @@ export class EntriesAPI {
   }
 
   async restore(diaryId: string, entryId: string): Promise<void> {
-    // TODO: Sign the encoded request with credentials.signingPrivateKey before sending it.
     await this.rpc.rpc(
       "io.thingsdiary.v1.entry.restore",
       { diaryId, entryId },

@@ -38,6 +38,7 @@ export class Client {
         });
         return response.token;
       },
+      this.credentials.signingPrivateKey,
       options.websocket,
     );
 

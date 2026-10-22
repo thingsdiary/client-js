@@ -49,7 +49,6 @@ export class TopicsAPI {
       key.id,
     );
 
-    // TODO: Sign the encoded request with credentials.signingPrivateKey before sending it.
     await this.rpc.rpc(
       "io.thingsdiary.v1.topic.put",
       {
@@ -103,7 +102,6 @@ export class TopicsAPI {
   }
 
   async delete(diaryId: string, topicId: string, options?: DeleteTopicOptions): Promise<void> {
-    // TODO: Sign the encoded request with credentials.signingPrivateKey before sending it.
     await this.rpc.rpc(
       "io.thingsdiary.v1.topic.delete",
       {
@@ -119,7 +117,6 @@ export class TopicsAPI {
   }
 
   async restore(diaryId: string, topicId: string): Promise<void> {
-    // TODO: Sign the encoded request with credentials.signingPrivateKey before sending it.
     await this.rpc.rpc(
       "io.thingsdiary.v1.topic.restore",
       { diaryId, topicId },

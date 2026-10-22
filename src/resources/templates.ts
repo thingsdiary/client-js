@@ -41,7 +41,6 @@ export class TemplatesAPI {
     const key = await this.keys.getActive(diaryId);
     const encrypted = encryptDetails({ content: params.content }, key.value, key.id);
 
-    // TODO: Sign the encoded request with credentials.signingPrivateKey before sending it.
     await this.rpc.rpc(
       "io.thingsdiary.v1.template.put",
       {
@@ -97,7 +96,6 @@ export class TemplatesAPI {
     templateId: string,
     options?: DeleteTemplateOptions,
   ): Promise<void> {
-    // TODO: Sign the encoded request with credentials.signingPrivateKey before sending it.
     await this.rpc.rpc(
       "io.thingsdiary.v1.template.delete",
       { diaryId, templateId, soft: options?.soft ?? true },
@@ -108,7 +106,6 @@ export class TemplatesAPI {
   }
 
   async restore(diaryId: string, templateId: string): Promise<void> {
-    // TODO: Sign the encoded request with credentials.signingPrivateKey before sending it.
     await this.rpc.rpc(
       "io.thingsdiary.v1.template.restore",
       { diaryId, templateId },

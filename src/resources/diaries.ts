@@ -42,7 +42,6 @@ export class DiariesAPI {
     const entity = encryptDetails(params, diaryKey, "");
     const encryptedDiaryKey = encryptWithPublicKey(diaryKey, this.credentials.encryptionPublicKey);
 
-    // TODO: Sign the encoded request with credentials.signingPrivateKey before sending it.
     await this.rpc.rpc(
       "io.thingsdiary.v1.diary.create",
       {
@@ -69,7 +68,6 @@ export class DiariesAPI {
       key.id,
     );
 
-    // TODO: Sign the encoded request with credentials.signingPrivateKey before sending it.
     await this.rpc.rpc(
       "io.thingsdiary.v1.diary.put",
       {
@@ -86,7 +84,6 @@ export class DiariesAPI {
   }
 
   async delete(diaryId: string): Promise<void> {
-    // TODO: Sign the encoded request with credentials.signingPrivateKey before sending it.
     await this.rpc.rpc("io.thingsdiary.v1.diary.delete", { diaryId }, DeleteDiaryRequest);
 
     // TODO: Wait for the matching realtime event before returning.
