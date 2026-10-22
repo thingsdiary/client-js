@@ -78,11 +78,7 @@ export const EncryptedData: MessageFns<EncryptedData> = {
 };
 
 function createBaseEncryption(): Encryption {
-  return {
-    diaryKeyId: "",
-    encryptedKeyNonce: new Uint8Array(0),
-    encryptedKeyData: new Uint8Array(0),
-  };
+  return { diaryKeyId: "", encryptedKeyNonce: new Uint8Array(0), encryptedKeyData: new Uint8Array(0) };
 }
 
 export const Encryption: MessageFns<Encryption> = {

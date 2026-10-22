@@ -62,7 +62,8 @@ export interface DeleteTemplateRequest {
   soft?: boolean | undefined;
 }
 
-export interface DeleteTemplateResponse {}
+export interface DeleteTemplateResponse {
+}
 
 export interface RestoreTemplateRequest {
   diaryId: string;
@@ -115,9 +116,7 @@ export const Template: MessageFns<Template> = {
     }
     if (message.version !== 0n) {
       if (BigInt.asUintN(64, message.version) !== message.version) {
-        throw new globalThis.Error(
-          "value provided for field message.version of type uint64 too large",
-        );
+        throw new globalThis.Error("value provided for field message.version of type uint64 too large");
       }
       writer.uint32(24).uint64(message.version);
     }
@@ -471,9 +470,7 @@ export const PutTemplateRequest: MessageFns<PutTemplateRequest> = {
     }
     if (message.version !== 0n) {
       if (BigInt.asUintN(64, message.version) !== message.version) {
-        throw new globalThis.Error(
-          "value provided for field message.version of type uint64 too large",
-        );
+        throw new globalThis.Error("value provided for field message.version of type uint64 too large");
       }
       writer.uint32(24).uint64(message.version);
     }
@@ -763,10 +760,7 @@ function createBaseRestoreTemplateResponse(): RestoreTemplateResponse {
 }
 
 export const RestoreTemplateResponse: MessageFns<RestoreTemplateResponse> = {
-  encode(
-    message: RestoreTemplateResponse,
-    writer: BinaryWriter = new BinaryWriter(),
-  ): BinaryWriter {
+  encode(message: RestoreTemplateResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.template !== undefined) {
       Template.encode(message.template, writer.uint32(10).fork()).join();
     }

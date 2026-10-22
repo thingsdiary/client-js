@@ -124,9 +124,7 @@ export const Timestamp: MessageFns<Timestamp> = {
   encode(message: Timestamp, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.seconds !== 0n) {
       if (BigInt.asIntN(64, message.seconds) !== message.seconds) {
-        throw new globalThis.Error(
-          "value provided for field message.seconds of type int64 too large",
-        );
+        throw new globalThis.Error("value provided for field message.seconds of type int64 too large");
       }
       writer.uint32(8).int64(message.seconds);
     }

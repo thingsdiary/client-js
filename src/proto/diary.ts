@@ -79,7 +79,8 @@ export interface DeleteDiaryRequest {
   diaryId: string;
 }
 
-export interface DeleteDiaryResponse {}
+export interface DeleteDiaryResponse {
+}
 
 export interface DiaryDeleted {
   eventId: string;
@@ -108,9 +109,7 @@ export const Diary: MessageFns<Diary> = {
     }
     if (message.version !== 0n) {
       if (BigInt.asUintN(64, message.version) !== message.version) {
-        throw new globalThis.Error(
-          "value provided for field message.version of type uint64 too large",
-        );
+        throw new globalThis.Error("value provided for field message.version of type uint64 too large");
       }
       writer.uint32(16).uint64(message.version);
     }
@@ -618,9 +617,7 @@ export const PutDiaryRequest: MessageFns<PutDiaryRequest> = {
     }
     if (message.version !== 0n) {
       if (BigInt.asUintN(64, message.version) !== message.version) {
-        throw new globalThis.Error(
-          "value provided for field message.version of type uint64 too large",
-        );
+        throw new globalThis.Error("value provided for field message.version of type uint64 too large");
       }
       writer.uint32(16).uint64(message.version);
     }
@@ -903,9 +900,7 @@ export const DiaryDeleted: MessageFns<DiaryDeleted> = {
     }
     if (message.version !== 0n) {
       if (BigInt.asUintN(64, message.version) !== message.version) {
-        throw new globalThis.Error(
-          "value provided for field message.version of type uint64 too large",
-        );
+        throw new globalThis.Error("value provided for field message.version of type uint64 too large");
       }
       writer.uint32(32).uint64(message.version);
     }
