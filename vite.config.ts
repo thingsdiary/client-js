@@ -28,12 +28,7 @@ export default defineConfig({
     },
 
     rollupOptions: {
-      external: [
-        /^@noble\/ciphers/,
-        /^@noble\/curves/,
-        /^@noble\/hashes/,
-        "@stablelib/nacl",
-      ],
+      external: [/^@noble\/ciphers/, /^@noble\/curves/, /^@noble\/hashes/, "@stablelib/nacl"],
       output: {
         exports: "named",
       },

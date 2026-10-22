@@ -115,8 +115,7 @@ describe("Diaries API", () => {
 
   it("should encrypt and decrypt diary data correctly", async () => {
     const testTitle = "Encrypted Diary " + randomUUID();
-    const testDescription =
-      "This is a secret description with special chars: 🔐✨";
+    const testDescription = "This is a secret description with special chars: 🔐✨";
 
     const created = await client.diaries.create({
       title: testTitle,
@@ -151,11 +150,10 @@ describe("Diaries API", () => {
 
     // List and verify all are present
     const diaries = await client.diaries.list();
-    const sequentialDiaries = diaries.filter((d) =>
-      d.title.startsWith("Sequential Test")
-    );
+    const sequentialDiaries = diaries.filter((d) => d.title.startsWith("Sequential Test"));
 
     expect(sequentialDiaries.length).toBeGreaterThanOrEqual(3);
+    expect(sequentialDiaries.some((diary) => diary.id === diary1.id)).toBe(true);
 
     // Update one
     await client.diaries.put(diary2.id, {

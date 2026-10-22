@@ -255,8 +255,7 @@ describe("Topics API", () => {
 
   it("should encrypt and decrypt topic data correctly", async () => {
     const testTitle = "Encrypted Topic " + randomUUID();
-    const testDescription =
-      "This is a secret description with special chars: 🎨🌈✨";
+    const testDescription = "This is a secret description with special chars: 🎨🌈✨";
     const testColor = "#FF00FF";
 
     const created = await client.topics.create(diaryId, {
@@ -421,11 +420,10 @@ describe("Topics API", () => {
     });
 
     const result = await client.topics.list(diaryId);
-    const sequentialTopics = result.topics.filter((t) =>
-      t.title.startsWith("Sequential Topic")
-    );
+    const sequentialTopics = result.topics.filter((t) => t.title.startsWith("Sequential Topic"));
 
     expect(sequentialTopics.length).toBeGreaterThanOrEqual(3);
+    expect(sequentialTopics.some((topic) => topic.id === topic1.id)).toBe(true);
 
     await client.topics.put(diaryId, topic2.id, {
       title: "Sequential Topic 2 Updated",

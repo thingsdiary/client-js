@@ -70,18 +70,14 @@ export class TopicsAPI {
   constructor(
     private http: HttpClient,
     private credentials: Credentials,
-    private keysAPI: KeysAPI
+    private keysAPI: KeysAPI,
   ) {}
 
   async create(diaryId: string, params: CreateTopicParams): Promise<Topic> {
     return this.put(diaryId, crypto.randomUUID(), params);
   }
 
-  async put(
-    diaryId: string,
-    topicId: string,
-    params: PutTopicParams
-  ): Promise<Topic> {
+  async put(diaryId: string, topicId: string, params: PutTopicParams): Promise<Topic> {
     const encryptionKey = await this.keysAPI.getActive(diaryId);
     const diaryKey = encryptionKey.value;
 
@@ -93,11 +89,15 @@ export class TopicsAPI {
       color: params.color,
     };
     const detailsJson = new TextEncoder().encode(JSON.stringify(details));
-    const { nonce: detailsNonce, ciphertext: encryptedDetails } =
-      encryptWithSymmetricKey(detailsJson, entityKey);
+    const { nonce: detailsNonce, ciphertext: encryptedDetails } = encryptWithSymmetricKey(
+      detailsJson,
+      entityKey,
+    );
 
-    const { nonce: keyNonce, ciphertext: encryptedEntityKey } =
-      encryptWithSymmetricKey(entityKey, diaryKey);
+    const { nonce: keyNonce, ciphertext: encryptedEntityKey } = encryptWithSymmetricKey(
+      entityKey,
+      diaryKey,
+    );
 
     const request = {
       version: params.version ?? NewVersion(),
@@ -114,10 +114,7 @@ export class TopicsAPI {
     };
 
     const requestJson = new TextEncoder().encode(JSON.stringify(request));
-    const signature = signBytes(
-      requestJson,
-      this.credentials.signingPrivateKey
-    );
+    const signature = signBytes(requestJson, this.credentials.signingPrivateKey);
 
     const response = await this.http.request<PutTopicResponse>(
       `/v1/diaries/${diaryId}/topics/${topicId}`,
@@ -125,30 +122,23 @@ export class TopicsAPI {
         method: "PUT",
         body: request,
         headers: { "X-Signature": bytesToBase64(signature) },
-      }
+      },
     );
 
     return this.decryptTopic(response.topic, diaryKey);
   }
 
-  async delete(
-    diaryId: string,
-    topicId: string,
-    options?: DeleteTopicOptions
-  ): Promise<void> {
+  async delete(diaryId: string, topicId: string, options?: DeleteTopicOptions): Promise<void> {
     const deleteEntries = options?.deleteEntries ?? false;
     const query = deleteEntries ? "?delete_entries=true" : "";
-    await this.http.request<void>(
-      `/v1/diaries/${diaryId}/topics/${topicId}${query}`,
-      {
-        method: "DELETE",
-      }
-    );
+    await this.http.request<void>(`/v1/diaries/${diaryId}/topics/${topicId}${query}`, {
+      method: "DELETE",
+    });
   }
 
   async list(
     diaryId: string,
-    nextPageToken?: string
+    nextPageToken?: string,
   ): Promise<{ topics: Topic[]; next_page_token?: string }> {
     const encryptionKey = await this.keysAPI.getActive(diaryId);
     const diaryKey = encryptionKey.value;
@@ -156,7 +146,7 @@ export class TopicsAPI {
     const query = nextPageToken ? `?next_page_token=${nextPageToken}` : "";
     const response = await this.http.request<GetTopicsResponse>(
       `/v1/diaries/${diaryId}/topics${query}`,
-      { method: "GET" }
+      { method: "GET" },
     );
 
     const topics: Topic[] = [];
@@ -177,7 +167,7 @@ export class TopicsAPI {
 
     const response = await this.http.request<GetTopicResponse>(
       `/v1/diaries/${diaryId}/topics/${topicId}`,
-      { method: "GET" }
+      { method: "GET" },
     );
 
     return this.decryptTopic(response.topic, diaryKey);
@@ -187,13 +177,13 @@ export class TopicsAPI {
     const entityKey = decryptWithSymmetricKey(
       base64ToBytes(apiTopic.encryption.encrypted_key_nonce),
       base64ToBytes(apiTopic.encryption.encrypted_key_data),
-      diaryKey
+      diaryKey,
     );
 
     const detailsBytes = decryptWithSymmetricKey(
       base64ToBytes(apiTopic.details.nonce),
       base64ToBytes(apiTopic.details.data),
-      entityKey
+      entityKey,
     );
 
     const details = JSON.parse(new TextDecoder().decode(detailsBytes));

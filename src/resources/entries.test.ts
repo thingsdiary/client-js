@@ -66,9 +66,7 @@ describe("Entries API", () => {
     expect(Array.isArray(result.entries)).toBe(true);
     expect(result.entries.length).toBeGreaterThan(0);
 
-    const entry = result.entries.find(
-      (e) => e.content === "Entry for List Test"
-    );
+    const entry = result.entries.find((e) => e.content === "Entry for List Test");
     expect(entry).toBeDefined();
     expect(entry?.diary_id).toBe(diaryId);
   });
@@ -315,12 +313,8 @@ describe("Entries API", () => {
 
     const allEntries = await client.entries.list(diaryId);
 
-    const topic1Entries = allEntries.entries.filter(
-      (e) => e.topic_id === topic1.id
-    );
-    const topic2Entries = allEntries.entries.filter(
-      (e) => e.topic_id === topic2.id
-    );
+    const topic1Entries = allEntries.entries.filter((e) => e.topic_id === topic1.id);
+    const topic2Entries = allEntries.entries.filter((e) => e.topic_id === topic2.id);
     const noTopicEntries = allEntries.entries.filter((e) => !e.topic_id);
 
     expect(topic1Entries.length).toBeGreaterThanOrEqual(2);
@@ -376,19 +370,13 @@ describe("Entries API", () => {
     const diary1Entries = await client.entries.list(diaryId);
     const diary2Entries = await client.entries.list(diary2.id);
 
-    const diary1HasEntry1 = diary1Entries.entries.some(
-      (e) => e.id === entry1.id
-    );
-    const diary2HasEntry2 = diary2Entries.entries.some(
-      (e) => e.id === entry2.id
-    );
+    const diary1HasEntry1 = diary1Entries.entries.some((e) => e.id === entry1.id);
+    const diary2HasEntry2 = diary2Entries.entries.some((e) => e.id === entry2.id);
 
     expect(diary1HasEntry1).toBe(true);
     expect(diary2HasEntry2).toBe(true);
 
-    const diary2HasEntry1 = diary2Entries.entries.some(
-      (e) => e.id === entry1.id
-    );
+    const diary2HasEntry1 = diary2Entries.entries.some((e) => e.id === entry1.id);
     expect(diary2HasEntry1).toBe(false);
   });
 
@@ -400,8 +388,7 @@ describe("Entries API", () => {
     });
 
     const entry = await client.entries.create(diaryId, {
-      content:
-        "Complex entry with everything\n\nMultiple lines\nEmojis: 🎉🎨\nUnicode: 测试",
+      content: "Complex entry with everything\n\nMultiple lines\nEmojis: 🎉🎨\nUnicode: 测试",
       topic_id: topic.id,
       archived: true,
       bookmarked: true,
@@ -444,10 +431,11 @@ describe("Entries API", () => {
 
     const result = await client.entries.list(diaryId);
     const sequentialEntries = result.entries.filter((e) =>
-      e.content.startsWith("Sequential Entry")
+      e.content.startsWith("Sequential Entry"),
     );
 
     expect(sequentialEntries.length).toBeGreaterThanOrEqual(3);
+    expect(sequentialEntries.some((entry) => entry.id === entry1.id)).toBe(true);
 
     await client.entries.put(diaryId, entry2.id, {
       content: "Sequential Entry 2 Updated",

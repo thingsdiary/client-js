@@ -16,6 +16,8 @@
   "scripts": {
     "build": "vite build && tsc --emitDeclarationOnly && tsc-alias",
     "build:prod": "NODE_ENV=production npm run build",
+    "format": "oxfmt src vite.config.ts",
+    "lint": "oxlint src vite.config.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "prepublishOnly": "npm run build:prod"
@@ -45,6 +47,8 @@
   },
   "devDependencies": {
     "@types/node": "^24.7.0",
+    "oxfmt": "^0.74.0",
+    "oxlint": "^1.89.0",
     "tsc-alias": "^1.8.16",
     "typescript": "^5.9.3",
     "vite": "^7.1.9",

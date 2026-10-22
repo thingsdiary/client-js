@@ -63,9 +63,7 @@ describe("Templates API", () => {
     expect(Array.isArray(result.templates)).toBe(true);
     expect(result.templates.length).toBeGreaterThan(0);
 
-    const template = result.templates.find(
-      (t) => t.content === "Template for List Test"
-    );
+    const template = result.templates.find((t) => t.content === "Template for List Test");
     expect(template).toBeDefined();
     expect(template?.diary_id).toBe(diaryId);
   });
@@ -149,10 +147,11 @@ describe("Templates API", () => {
     // List and verify all are present
     const result = await client.templates.list(diaryId);
     const sequentialTemplates = result.templates.filter((t) =>
-      t.content.startsWith("Sequential Template")
+      t.content.startsWith("Sequential Template"),
     );
 
     expect(sequentialTemplates.length).toBeGreaterThanOrEqual(3);
+    expect(sequentialTemplates.some((template) => template.id === template1.id)).toBe(true);
 
     // Update one
     await client.templates.put(diaryId, template2.id, {
@@ -217,20 +216,14 @@ describe("Templates API", () => {
     const diary1Templates = await client.templates.list(diaryId);
     const diary2Templates = await client.templates.list(diary2.id);
 
-    const diary1HasTemplate1 = diary1Templates.templates.some(
-      (t) => t.id === template1.id
-    );
-    const diary2HasTemplate2 = diary2Templates.templates.some(
-      (t) => t.id === template2.id
-    );
+    const diary1HasTemplate1 = diary1Templates.templates.some((t) => t.id === template1.id);
+    const diary2HasTemplate2 = diary2Templates.templates.some((t) => t.id === template2.id);
 
     expect(diary1HasTemplate1).toBe(true);
     expect(diary2HasTemplate2).toBe(true);
 
     // Ensure template from diary1 is not in diary2's list
-    const diary2HasTemplate1 = diary2Templates.templates.some(
-      (t) => t.id === template1.id
-    );
+    const diary2HasTemplate1 = diary2Templates.templates.some((t) => t.id === template1.id);
     expect(diary2HasTemplate1).toBe(false);
   });
 });
