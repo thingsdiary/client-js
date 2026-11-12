@@ -6,23 +6,19 @@
 
 /* eslint-disable */
 import { BinaryReader, BinaryWriter } from "@bufbuild/protobuf/wire";
+import { EncryptedTopic } from "./encrypted_topic.js";
 import { EncryptedData, Encryption } from "./encryption.js";
 import { Timestamp } from "./google/protobuf/timestamp.js";
 import { Page, PageInfo } from "./pagination.js";
 
 export const protobufPackage = "io.thingsdiary.v1";
 
-export interface Topic {
-  id: string;
-  diaryId: string;
-  version: bigint;
-  createdAt: Timestamp | undefined;
-  updatedAt: Timestamp | undefined;
-  deletedAt: Timestamp | undefined;
-  encryption: Encryption | undefined;
-  details: EncryptedData | undefined;
-  defaultTemplateId?: string | undefined;
-  removedAt: Timestamp | undefined;
+/** Plaintext serialized before encrypting EncryptedTopic.details. */
+export interface TopicDetails {
+  title: string;
+  description: string;
+  color: string;
+  entryPreviewable?: boolean | undefined;
 }
 
 /** Centrifugo methods: io.thingsdiary.v1.topic.{get,list,put,delete,restore}. */
@@ -32,7 +28,7 @@ export interface GetTopicRequest {
 }
 
 export interface GetTopicResponse {
-  topic: Topic | undefined;
+  topic: EncryptedTopic | undefined;
 }
 
 export interface ListTopicsRequest {
@@ -41,7 +37,7 @@ export interface ListTopicsRequest {
 }
 
 export interface ListTopicsResponse {
-  topics: Topic[];
+  topics: EncryptedTopic[];
   page: PageInfo | undefined;
 }
 
@@ -55,7 +51,7 @@ export interface PutTopicRequest {
 }
 
 export interface PutTopicResponse {
-  topic: Topic | undefined;
+  topic: EncryptedTopic | undefined;
 }
 
 export interface DeleteTopicRequest {
@@ -74,81 +70,49 @@ export interface RestoreTopicRequest {
 }
 
 export interface RestoreTopicResponse {
-  topic: Topic | undefined;
+  topic: EncryptedTopic | undefined;
 }
 
 export interface TopicChanged {
   eventId: string;
   occurredAt: Timestamp | undefined;
-  topic: Topic | undefined;
+  topic: EncryptedTopic | undefined;
 }
 
 export interface TopicDeleted {
   eventId: string;
   occurredAt: Timestamp | undefined;
-  topic: Topic | undefined;
+  topic: EncryptedTopic | undefined;
 }
 
 export interface TopicRestored {
   eventId: string;
   occurredAt: Timestamp | undefined;
-  topic: Topic | undefined;
+  topic: EncryptedTopic | undefined;
 }
 
-function createBaseTopic(): Topic {
-  return {
-    id: "",
-    diaryId: "",
-    version: 0n,
-    createdAt: undefined,
-    updatedAt: undefined,
-    deletedAt: undefined,
-    encryption: undefined,
-    details: undefined,
-    defaultTemplateId: undefined,
-    removedAt: undefined,
-  };
+function createBaseTopicDetails(): TopicDetails {
+  return { title: "", description: "", color: "", entryPreviewable: undefined };
 }
 
-export const Topic: MessageFns<Topic> = {
-  encode(message: Topic, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.id !== "") {
-      writer.uint32(10).string(message.id);
+export const TopicDetails: MessageFns<TopicDetails> = {
+  encode(message: TopicDetails, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.title !== "") {
+      writer.uint32(10).string(message.title);
     }
-    if (message.diaryId !== "") {
-      writer.uint32(18).string(message.diaryId);
+    if (message.description !== "") {
+      writer.uint32(18).string(message.description);
     }
-    if (message.version !== 0n) {
-      if (BigInt.asUintN(64, message.version) !== message.version) {
-        throw new globalThis.Error("value provided for field message.version of type uint64 too large");
-      }
-      writer.uint32(24).uint64(message.version);
+    if (message.color !== "") {
+      writer.uint32(26).string(message.color);
     }
-    if (message.createdAt !== undefined) {
-      Timestamp.encode(message.createdAt, writer.uint32(34).fork()).join();
-    }
-    if (message.updatedAt !== undefined) {
-      Timestamp.encode(message.updatedAt, writer.uint32(42).fork()).join();
-    }
-    if (message.deletedAt !== undefined) {
-      Timestamp.encode(message.deletedAt, writer.uint32(50).fork()).join();
-    }
-    if (message.encryption !== undefined) {
-      Encryption.encode(message.encryption, writer.uint32(58).fork()).join();
-    }
-    if (message.details !== undefined) {
-      EncryptedData.encode(message.details, writer.uint32(66).fork()).join();
-    }
-    if (message.defaultTemplateId !== undefined) {
-      writer.uint32(74).string(message.defaultTemplateId);
-    }
-    if (message.removedAt !== undefined) {
-      Timestamp.encode(message.removedAt, writer.uint32(82).fork()).join();
+    if (message.entryPreviewable !== undefined) {
+      writer.uint32(32).bool(message.entryPreviewable);
     }
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Topic {
+  decode(input: BinaryReader | Uint8Array, length?: number): TopicDetails {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const previousRecursionDepth = (reader as any).__tsProtoDecodeDepth ?? 0;
     if (previousRecursionDepth >= 100) {
@@ -157,7 +121,7 @@ export const Topic: MessageFns<Topic> = {
     (reader as any).__tsProtoDecodeDepth = previousRecursionDepth + 1;
     try {
       const end = length === undefined ? reader.len : reader.pos + length;
-      const message = createBaseTopic();
+      const message = createBaseTopicDetails();
       while (reader.pos < end) {
         const tag = reader.uint32();
         switch (tag >>> 3) {
@@ -166,7 +130,7 @@ export const Topic: MessageFns<Topic> = {
               break;
             }
 
-            message.id = reader.string();
+            message.title = reader.string();
             continue;
           }
           case 2: {
@@ -174,71 +138,23 @@ export const Topic: MessageFns<Topic> = {
               break;
             }
 
-            message.diaryId = reader.string();
+            message.description = reader.string();
             continue;
           }
           case 3: {
-            if (tag !== 24) {
+            if (tag !== 26) {
               break;
             }
 
-            message.version = reader.uint64() as bigint;
+            message.color = reader.string();
             continue;
           }
           case 4: {
-            if (tag !== 34) {
+            if (tag !== 32) {
               break;
             }
 
-            message.createdAt = Timestamp.decode(reader, reader.uint32());
-            continue;
-          }
-          case 5: {
-            if (tag !== 42) {
-              break;
-            }
-
-            message.updatedAt = Timestamp.decode(reader, reader.uint32());
-            continue;
-          }
-          case 6: {
-            if (tag !== 50) {
-              break;
-            }
-
-            message.deletedAt = Timestamp.decode(reader, reader.uint32());
-            continue;
-          }
-          case 7: {
-            if (tag !== 58) {
-              break;
-            }
-
-            message.encryption = Encryption.decode(reader, reader.uint32());
-            continue;
-          }
-          case 8: {
-            if (tag !== 66) {
-              break;
-            }
-
-            message.details = EncryptedData.decode(reader, reader.uint32());
-            continue;
-          }
-          case 9: {
-            if (tag !== 74) {
-              break;
-            }
-
-            message.defaultTemplateId = reader.string();
-            continue;
-          }
-          case 10: {
-            if (tag !== 82) {
-              break;
-            }
-
-            message.removedAt = Timestamp.decode(reader, reader.uint32());
+            message.entryPreviewable = reader.bool();
             continue;
           }
         }
@@ -318,7 +234,7 @@ function createBaseGetTopicResponse(): GetTopicResponse {
 export const GetTopicResponse: MessageFns<GetTopicResponse> = {
   encode(message: GetTopicResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.topic !== undefined) {
-      Topic.encode(message.topic, writer.uint32(10).fork()).join();
+      EncryptedTopic.encode(message.topic, writer.uint32(10).fork()).join();
     }
     return writer;
   },
@@ -341,7 +257,7 @@ export const GetTopicResponse: MessageFns<GetTopicResponse> = {
               break;
             }
 
-            message.topic = Topic.decode(reader, reader.uint32());
+            message.topic = EncryptedTopic.decode(reader, reader.uint32());
             continue;
           }
         }
@@ -421,7 +337,7 @@ function createBaseListTopicsResponse(): ListTopicsResponse {
 export const ListTopicsResponse: MessageFns<ListTopicsResponse> = {
   encode(message: ListTopicsResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     for (const v of message.topics) {
-      Topic.encode(v!, writer.uint32(10).fork()).join();
+      EncryptedTopic.encode(v!, writer.uint32(10).fork()).join();
     }
     if (message.page !== undefined) {
       PageInfo.encode(message.page, writer.uint32(18).fork()).join();
@@ -447,7 +363,7 @@ export const ListTopicsResponse: MessageFns<ListTopicsResponse> = {
               break;
             }
 
-            message.topics.push(Topic.decode(reader, reader.uint32()));
+            message.topics.push(EncryptedTopic.decode(reader, reader.uint32()));
             continue;
           }
           case 2: {
@@ -589,7 +505,7 @@ function createBasePutTopicResponse(): PutTopicResponse {
 export const PutTopicResponse: MessageFns<PutTopicResponse> = {
   encode(message: PutTopicResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.topic !== undefined) {
-      Topic.encode(message.topic, writer.uint32(10).fork()).join();
+      EncryptedTopic.encode(message.topic, writer.uint32(10).fork()).join();
     }
     return writer;
   },
@@ -612,7 +528,7 @@ export const PutTopicResponse: MessageFns<PutTopicResponse> = {
               break;
             }
 
-            message.topic = Topic.decode(reader, reader.uint32());
+            message.topic = EncryptedTopic.decode(reader, reader.uint32());
             continue;
           }
         }
@@ -806,7 +722,7 @@ function createBaseRestoreTopicResponse(): RestoreTopicResponse {
 export const RestoreTopicResponse: MessageFns<RestoreTopicResponse> = {
   encode(message: RestoreTopicResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.topic !== undefined) {
-      Topic.encode(message.topic, writer.uint32(10).fork()).join();
+      EncryptedTopic.encode(message.topic, writer.uint32(10).fork()).join();
     }
     return writer;
   },
@@ -829,7 +745,7 @@ export const RestoreTopicResponse: MessageFns<RestoreTopicResponse> = {
               break;
             }
 
-            message.topic = Topic.decode(reader, reader.uint32());
+            message.topic = EncryptedTopic.decode(reader, reader.uint32());
             continue;
           }
         }
@@ -858,7 +774,7 @@ export const TopicChanged: MessageFns<TopicChanged> = {
       Timestamp.encode(message.occurredAt, writer.uint32(18).fork()).join();
     }
     if (message.topic !== undefined) {
-      Topic.encode(message.topic, writer.uint32(26).fork()).join();
+      EncryptedTopic.encode(message.topic, writer.uint32(26).fork()).join();
     }
     return writer;
   },
@@ -897,7 +813,7 @@ export const TopicChanged: MessageFns<TopicChanged> = {
               break;
             }
 
-            message.topic = Topic.decode(reader, reader.uint32());
+            message.topic = EncryptedTopic.decode(reader, reader.uint32());
             continue;
           }
         }
@@ -926,7 +842,7 @@ export const TopicDeleted: MessageFns<TopicDeleted> = {
       Timestamp.encode(message.occurredAt, writer.uint32(18).fork()).join();
     }
     if (message.topic !== undefined) {
-      Topic.encode(message.topic, writer.uint32(26).fork()).join();
+      EncryptedTopic.encode(message.topic, writer.uint32(26).fork()).join();
     }
     return writer;
   },
@@ -965,7 +881,7 @@ export const TopicDeleted: MessageFns<TopicDeleted> = {
               break;
             }
 
-            message.topic = Topic.decode(reader, reader.uint32());
+            message.topic = EncryptedTopic.decode(reader, reader.uint32());
             continue;
           }
         }
@@ -994,7 +910,7 @@ export const TopicRestored: MessageFns<TopicRestored> = {
       Timestamp.encode(message.occurredAt, writer.uint32(18).fork()).join();
     }
     if (message.topic !== undefined) {
-      Topic.encode(message.topic, writer.uint32(26).fork()).join();
+      EncryptedTopic.encode(message.topic, writer.uint32(26).fork()).join();
     }
     return writer;
   },
@@ -1033,7 +949,7 @@ export const TopicRestored: MessageFns<TopicRestored> = {
               break;
             }
 
-            message.topic = Topic.decode(reader, reader.uint32());
+            message.topic = EncryptedTopic.decode(reader, reader.uint32());
             continue;
           }
         }

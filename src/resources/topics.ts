@@ -1,3 +1,4 @@
+import type { EncryptedTopic as ProtoTopic } from "@/proto/encrypted_topic";
 import { RealtimeClient } from "@/realtime";
 import { KeysAPI } from "@/resources/keys";
 import { decryptDetails, encryptDetails } from "@/resources/details";
@@ -5,6 +6,7 @@ import { optionalTimestampToDate, timestampToDate } from "@/utils/protobuf/times
 import { NewVersion, Version } from "@/resources/version";
 import type { Topic } from "@/types";
 import {
+  TopicDetails,
   DeleteTopicRequest,
   DeleteTopicResponse,
   GetTopicRequest,
@@ -15,7 +17,6 @@ import {
   PutTopicResponse,
   RestoreTopicRequest,
   RestoreTopicResponse,
-  Topic as ProtoTopic,
 } from "@/proto/topic";
 
 export interface CreateTopicParams {
@@ -47,9 +48,15 @@ export class TopicsAPI {
   async put(diaryId: string, topicId: string, params: PutTopicParams): Promise<Topic> {
     const key = await this.keys.getActive(diaryId);
     const encrypted = encryptDetails(
-      { title: params.title, description: params.description, color: params.color },
+      {
+        title: params.title,
+        description: params.description,
+        color: params.color,
+        entryPreviewable: undefined,
+      },
       key.value,
       key.id,
+      TopicDetails,
     );
 
     const response = await this.rpc.rpc(
@@ -138,7 +145,7 @@ export class TopicsAPI {
   }
 
   private decrypt(value: ProtoTopic, key: Uint8Array): Topic {
-    const details = decryptDetails(value, key);
+    const details = decryptDetails(value, key, TopicDetails);
 
     return {
       id: value.id,

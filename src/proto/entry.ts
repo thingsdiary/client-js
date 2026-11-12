@@ -6,24 +6,30 @@
 
 /* eslint-disable */
 import { BinaryReader, BinaryWriter } from "@bufbuild/protobuf/wire";
+import { EncryptedEntry } from "./encrypted_entry.js";
 import { EncryptedData, Encryption } from "./encryption.js";
 import { Timestamp } from "./google/protobuf/timestamp.js";
 import { Page, PageInfo } from "./pagination.js";
 
 export const protobufPackage = "io.thingsdiary.v1";
 
-export interface Entry {
-  id: string;
-  diaryId: string;
-  version: bigint;
-  createdAt: Timestamp | undefined;
-  updatedAt: Timestamp | undefined;
-  deletedAt: Timestamp | undefined;
-  topicId?: string | undefined;
-  encryption: Encryption | undefined;
-  details: EncryptedData | undefined;
-  preview: EncryptedData | undefined;
-  removedAt: Timestamp | undefined;
+/** Plaintext serialized before encrypting EncryptedEntry.details. */
+export interface EntryDetails {
+  content: string;
+  archived: boolean;
+  bookmarked: boolean;
+  previewHidden: boolean;
+}
+
+/**
+ * Plaintext serialized before encrypting EncryptedEntry.preview.
+ * The current clients use the same content and flags as EntryDetails.
+ */
+export interface EntryPreview {
+  content: string;
+  archived: boolean;
+  bookmarked: boolean;
+  previewHidden: boolean;
 }
 
 /** Centrifugo methods: io.thingsdiary.v1.entry.{get,list,put,delete,restore}. */
@@ -33,7 +39,7 @@ export interface GetEntryRequest {
 }
 
 export interface GetEntryResponse {
-  entry: Entry | undefined;
+  entry: EncryptedEntry | undefined;
 }
 
 export interface ListEntriesRequest {
@@ -42,7 +48,7 @@ export interface ListEntriesRequest {
 }
 
 export interface ListEntriesResponse {
-  entries: Entry[];
+  entries: EncryptedEntry[];
   page: PageInfo | undefined;
 }
 
@@ -57,7 +63,7 @@ export interface PutEntryRequest {
 }
 
 export interface PutEntryResponse {
-  entry: Entry | undefined;
+  entry: EncryptedEntry | undefined;
 }
 
 export interface DeleteEntryRequest {
@@ -75,85 +81,49 @@ export interface RestoreEntryRequest {
 }
 
 export interface RestoreEntryResponse {
-  entry: Entry | undefined;
+  entry: EncryptedEntry | undefined;
 }
 
 export interface EntryChanged {
   eventId: string;
   occurredAt: Timestamp | undefined;
-  entry: Entry | undefined;
+  entry: EncryptedEntry | undefined;
 }
 
 export interface EntryDeleted {
   eventId: string;
   occurredAt: Timestamp | undefined;
-  entry: Entry | undefined;
+  entry: EncryptedEntry | undefined;
 }
 
 export interface EntryRestored {
   eventId: string;
   occurredAt: Timestamp | undefined;
-  entry: Entry | undefined;
+  entry: EncryptedEntry | undefined;
 }
 
-function createBaseEntry(): Entry {
-  return {
-    id: "",
-    diaryId: "",
-    version: 0n,
-    createdAt: undefined,
-    updatedAt: undefined,
-    deletedAt: undefined,
-    topicId: undefined,
-    encryption: undefined,
-    details: undefined,
-    preview: undefined,
-    removedAt: undefined,
-  };
+function createBaseEntryDetails(): EntryDetails {
+  return { content: "", archived: false, bookmarked: false, previewHidden: false };
 }
 
-export const Entry: MessageFns<Entry> = {
-  encode(message: Entry, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.id !== "") {
-      writer.uint32(10).string(message.id);
+export const EntryDetails: MessageFns<EntryDetails> = {
+  encode(message: EntryDetails, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.content !== "") {
+      writer.uint32(10).string(message.content);
     }
-    if (message.diaryId !== "") {
-      writer.uint32(18).string(message.diaryId);
+    if (message.archived !== false) {
+      writer.uint32(16).bool(message.archived);
     }
-    if (message.version !== 0n) {
-      if (BigInt.asUintN(64, message.version) !== message.version) {
-        throw new globalThis.Error("value provided for field message.version of type uint64 too large");
-      }
-      writer.uint32(24).uint64(message.version);
+    if (message.bookmarked !== false) {
+      writer.uint32(24).bool(message.bookmarked);
     }
-    if (message.createdAt !== undefined) {
-      Timestamp.encode(message.createdAt, writer.uint32(34).fork()).join();
-    }
-    if (message.updatedAt !== undefined) {
-      Timestamp.encode(message.updatedAt, writer.uint32(42).fork()).join();
-    }
-    if (message.deletedAt !== undefined) {
-      Timestamp.encode(message.deletedAt, writer.uint32(50).fork()).join();
-    }
-    if (message.topicId !== undefined) {
-      writer.uint32(58).string(message.topicId);
-    }
-    if (message.encryption !== undefined) {
-      Encryption.encode(message.encryption, writer.uint32(66).fork()).join();
-    }
-    if (message.details !== undefined) {
-      EncryptedData.encode(message.details, writer.uint32(74).fork()).join();
-    }
-    if (message.preview !== undefined) {
-      EncryptedData.encode(message.preview, writer.uint32(82).fork()).join();
-    }
-    if (message.removedAt !== undefined) {
-      Timestamp.encode(message.removedAt, writer.uint32(90).fork()).join();
+    if (message.previewHidden !== false) {
+      writer.uint32(32).bool(message.previewHidden);
     }
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Entry {
+  decode(input: BinaryReader | Uint8Array, length?: number): EntryDetails {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const previousRecursionDepth = (reader as any).__tsProtoDecodeDepth ?? 0;
     if (previousRecursionDepth >= 100) {
@@ -162,7 +132,7 @@ export const Entry: MessageFns<Entry> = {
     (reader as any).__tsProtoDecodeDepth = previousRecursionDepth + 1;
     try {
       const end = length === undefined ? reader.len : reader.pos + length;
-      const message = createBaseEntry();
+      const message = createBaseEntryDetails();
       while (reader.pos < end) {
         const tag = reader.uint32();
         switch (tag >>> 3) {
@@ -171,15 +141,15 @@ export const Entry: MessageFns<Entry> = {
               break;
             }
 
-            message.id = reader.string();
+            message.content = reader.string();
             continue;
           }
           case 2: {
-            if (tag !== 18) {
+            if (tag !== 16) {
               break;
             }
 
-            message.diaryId = reader.string();
+            message.archived = reader.bool();
             continue;
           }
           case 3: {
@@ -187,71 +157,94 @@ export const Entry: MessageFns<Entry> = {
               break;
             }
 
-            message.version = reader.uint64() as bigint;
+            message.bookmarked = reader.bool();
             continue;
           }
           case 4: {
-            if (tag !== 34) {
+            if (tag !== 32) {
               break;
             }
 
-            message.createdAt = Timestamp.decode(reader, reader.uint32());
+            message.previewHidden = reader.bool();
             continue;
           }
-          case 5: {
-            if (tag !== 42) {
+        }
+        if ((tag & 7) === 4 || tag === 0) {
+          break;
+        }
+        reader.skip(tag & 7);
+      }
+      return message;
+    } finally {
+      (reader as any).__tsProtoDecodeDepth = previousRecursionDepth;
+    }
+  },
+};
+
+function createBaseEntryPreview(): EntryPreview {
+  return { content: "", archived: false, bookmarked: false, previewHidden: false };
+}
+
+export const EntryPreview: MessageFns<EntryPreview> = {
+  encode(message: EntryPreview, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.content !== "") {
+      writer.uint32(10).string(message.content);
+    }
+    if (message.archived !== false) {
+      writer.uint32(16).bool(message.archived);
+    }
+    if (message.bookmarked !== false) {
+      writer.uint32(24).bool(message.bookmarked);
+    }
+    if (message.previewHidden !== false) {
+      writer.uint32(32).bool(message.previewHidden);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): EntryPreview {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const previousRecursionDepth = (reader as any).__tsProtoDecodeDepth ?? 0;
+    if (previousRecursionDepth >= 100) {
+      throw new globalThis.Error("protobuf decode recursion limit exceeded");
+    }
+    (reader as any).__tsProtoDecodeDepth = previousRecursionDepth + 1;
+    try {
+      const end = length === undefined ? reader.len : reader.pos + length;
+      const message = createBaseEntryPreview();
+      while (reader.pos < end) {
+        const tag = reader.uint32();
+        switch (tag >>> 3) {
+          case 1: {
+            if (tag !== 10) {
               break;
             }
 
-            message.updatedAt = Timestamp.decode(reader, reader.uint32());
+            message.content = reader.string();
             continue;
           }
-          case 6: {
-            if (tag !== 50) {
+          case 2: {
+            if (tag !== 16) {
               break;
             }
 
-            message.deletedAt = Timestamp.decode(reader, reader.uint32());
+            message.archived = reader.bool();
             continue;
           }
-          case 7: {
-            if (tag !== 58) {
+          case 3: {
+            if (tag !== 24) {
               break;
             }
 
-            message.topicId = reader.string();
+            message.bookmarked = reader.bool();
             continue;
           }
-          case 8: {
-            if (tag !== 66) {
+          case 4: {
+            if (tag !== 32) {
               break;
             }
 
-            message.encryption = Encryption.decode(reader, reader.uint32());
-            continue;
-          }
-          case 9: {
-            if (tag !== 74) {
-              break;
-            }
-
-            message.details = EncryptedData.decode(reader, reader.uint32());
-            continue;
-          }
-          case 10: {
-            if (tag !== 82) {
-              break;
-            }
-
-            message.preview = EncryptedData.decode(reader, reader.uint32());
-            continue;
-          }
-          case 11: {
-            if (tag !== 90) {
-              break;
-            }
-
-            message.removedAt = Timestamp.decode(reader, reader.uint32());
+            message.previewHidden = reader.bool();
             continue;
           }
         }
@@ -331,7 +324,7 @@ function createBaseGetEntryResponse(): GetEntryResponse {
 export const GetEntryResponse: MessageFns<GetEntryResponse> = {
   encode(message: GetEntryResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.entry !== undefined) {
-      Entry.encode(message.entry, writer.uint32(10).fork()).join();
+      EncryptedEntry.encode(message.entry, writer.uint32(10).fork()).join();
     }
     return writer;
   },
@@ -354,7 +347,7 @@ export const GetEntryResponse: MessageFns<GetEntryResponse> = {
               break;
             }
 
-            message.entry = Entry.decode(reader, reader.uint32());
+            message.entry = EncryptedEntry.decode(reader, reader.uint32());
             continue;
           }
         }
@@ -434,7 +427,7 @@ function createBaseListEntriesResponse(): ListEntriesResponse {
 export const ListEntriesResponse: MessageFns<ListEntriesResponse> = {
   encode(message: ListEntriesResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     for (const v of message.entries) {
-      Entry.encode(v!, writer.uint32(10).fork()).join();
+      EncryptedEntry.encode(v!, writer.uint32(10).fork()).join();
     }
     if (message.page !== undefined) {
       PageInfo.encode(message.page, writer.uint32(18).fork()).join();
@@ -460,7 +453,7 @@ export const ListEntriesResponse: MessageFns<ListEntriesResponse> = {
               break;
             }
 
-            message.entries.push(Entry.decode(reader, reader.uint32()));
+            message.entries.push(EncryptedEntry.decode(reader, reader.uint32()));
             continue;
           }
           case 2: {
@@ -614,7 +607,7 @@ function createBasePutEntryResponse(): PutEntryResponse {
 export const PutEntryResponse: MessageFns<PutEntryResponse> = {
   encode(message: PutEntryResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.entry !== undefined) {
-      Entry.encode(message.entry, writer.uint32(10).fork()).join();
+      EncryptedEntry.encode(message.entry, writer.uint32(10).fork()).join();
     }
     return writer;
   },
@@ -637,7 +630,7 @@ export const PutEntryResponse: MessageFns<PutEntryResponse> = {
               break;
             }
 
-            message.entry = Entry.decode(reader, reader.uint32());
+            message.entry = EncryptedEntry.decode(reader, reader.uint32());
             continue;
           }
         }
@@ -820,7 +813,7 @@ function createBaseRestoreEntryResponse(): RestoreEntryResponse {
 export const RestoreEntryResponse: MessageFns<RestoreEntryResponse> = {
   encode(message: RestoreEntryResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.entry !== undefined) {
-      Entry.encode(message.entry, writer.uint32(10).fork()).join();
+      EncryptedEntry.encode(message.entry, writer.uint32(10).fork()).join();
     }
     return writer;
   },
@@ -843,7 +836,7 @@ export const RestoreEntryResponse: MessageFns<RestoreEntryResponse> = {
               break;
             }
 
-            message.entry = Entry.decode(reader, reader.uint32());
+            message.entry = EncryptedEntry.decode(reader, reader.uint32());
             continue;
           }
         }
@@ -872,7 +865,7 @@ export const EntryChanged: MessageFns<EntryChanged> = {
       Timestamp.encode(message.occurredAt, writer.uint32(18).fork()).join();
     }
     if (message.entry !== undefined) {
-      Entry.encode(message.entry, writer.uint32(26).fork()).join();
+      EncryptedEntry.encode(message.entry, writer.uint32(26).fork()).join();
     }
     return writer;
   },
@@ -911,7 +904,7 @@ export const EntryChanged: MessageFns<EntryChanged> = {
               break;
             }
 
-            message.entry = Entry.decode(reader, reader.uint32());
+            message.entry = EncryptedEntry.decode(reader, reader.uint32());
             continue;
           }
         }
@@ -940,7 +933,7 @@ export const EntryDeleted: MessageFns<EntryDeleted> = {
       Timestamp.encode(message.occurredAt, writer.uint32(18).fork()).join();
     }
     if (message.entry !== undefined) {
-      Entry.encode(message.entry, writer.uint32(26).fork()).join();
+      EncryptedEntry.encode(message.entry, writer.uint32(26).fork()).join();
     }
     return writer;
   },
@@ -979,7 +972,7 @@ export const EntryDeleted: MessageFns<EntryDeleted> = {
               break;
             }
 
-            message.entry = Entry.decode(reader, reader.uint32());
+            message.entry = EncryptedEntry.decode(reader, reader.uint32());
             continue;
           }
         }
@@ -1008,7 +1001,7 @@ export const EntryRestored: MessageFns<EntryRestored> = {
       Timestamp.encode(message.occurredAt, writer.uint32(18).fork()).join();
     }
     if (message.entry !== undefined) {
-      Entry.encode(message.entry, writer.uint32(26).fork()).join();
+      EncryptedEntry.encode(message.entry, writer.uint32(26).fork()).join();
     }
     return writer;
   },
@@ -1047,7 +1040,7 @@ export const EntryRestored: MessageFns<EntryRestored> = {
               break;
             }
 
-            message.entry = Entry.decode(reader, reader.uint32());
+            message.entry = EncryptedEntry.decode(reader, reader.uint32());
             continue;
           }
         }

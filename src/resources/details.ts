@@ -5,13 +5,19 @@ import {
   generateSymmetricKey,
 } from "@/crypto/encryption";
 
-export function encryptDetails(
-  value: unknown,
+interface PayloadCodec<T> {
+  encode(value: T): { finish(): Uint8Array };
+  decode(data: Uint8Array): T;
+}
+
+export function encryptDetails<T>(
+  value: T,
   diaryKey: Uint8Array,
   diaryKeyId: string,
+  codec: PayloadCodec<T>,
 ): { encryption: Encryption; details: EncryptedData; key: Uint8Array } {
   const key = generateSymmetricKey();
-  const details = encryptWithSymmetricKey(new TextEncoder().encode(JSON.stringify(value)), key);
+  const details = encryptWithSymmetricKey(codec.encode(value).finish(), key);
   const encryptedKey = encryptWithSymmetricKey(key, diaryKey);
 
   return {
@@ -25,10 +31,11 @@ export function encryptDetails(
   };
 }
 
-export function decryptDetails(
+export function decryptDetails<T>(
   value: { encryption?: Encryption; details?: EncryptedData },
   diaryKey: Uint8Array,
-): any {
+  codec: PayloadCodec<T>,
+): T {
   if (!value.encryption || !value.details) throw new Error("encrypted details are missing");
 
   const key = decryptWithSymmetricKey(
@@ -39,5 +46,5 @@ export function decryptDetails(
 
   const data = decryptWithSymmetricKey(value.details.nonce, value.details.data, key);
 
-  return JSON.parse(new TextDecoder().decode(data));
+  return codec.decode(data);
 }

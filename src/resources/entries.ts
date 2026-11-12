@@ -1,3 +1,4 @@
+import type { EncryptedEntry as ProtoEntry } from "@/proto/encrypted_entry";
 import { encryptWithSymmetricKey } from "@/crypto/encryption";
 import { RealtimeClient } from "@/realtime";
 import { KeysAPI } from "@/resources/keys";
@@ -6,9 +7,10 @@ import { optionalTimestampToDate, timestampToDate } from "@/utils/protobuf/times
 import { NewVersion, Version } from "@/resources/version";
 import type { Entry } from "@/types";
 import {
+  EntryDetails,
+  EntryPreview,
   DeleteEntryRequest,
   DeleteEntryResponse,
-  Entry as ProtoEntry,
   GetEntryRequest,
   GetEntryResponse,
   ListEntriesRequest,
@@ -48,11 +50,11 @@ export class EntriesAPI {
       content: params.content,
       archived: params.archived ?? false,
       bookmarked: params.bookmarked ?? false,
-      preview_hidden: params.preview_hidden ?? false,
+      previewHidden: params.preview_hidden ?? false,
     };
-    const encrypted = encryptDetails(plain, key.value, key.id);
+    const encrypted = encryptDetails(plain, key.value, key.id, EntryDetails);
     const previewValue = encryptWithSymmetricKey(
-      new TextEncoder().encode(JSON.stringify(plain)),
+      EntryPreview.encode(plain).finish(),
       encrypted.key,
     );
 
@@ -137,7 +139,7 @@ export class EntriesAPI {
   }
 
   private decrypt(value: ProtoEntry, key: Uint8Array): Entry {
-    const details = decryptDetails(value, key);
+    const details = decryptDetails(value, key, EntryDetails);
 
     return {
       id: value.id,
@@ -146,7 +148,7 @@ export class EntriesAPI {
       topic_id: value.topicId,
       archived: details.archived,
       bookmarked: details.bookmarked,
-      preview_hidden: details.preview_hidden,
+      preview_hidden: details.previewHidden,
       created_at: timestampToDate(value.createdAt),
       updated_at: timestampToDate(value.updatedAt),
       deleted_at: optionalTimestampToDate(value.deletedAt),

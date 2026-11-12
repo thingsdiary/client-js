@@ -1,3 +1,4 @@
+import type { EncryptedDiary as ProtoDiary } from "@/proto/encrypted_diary";
 import { Credentials } from "@/crypto/credentials";
 import {
   decryptWithPrivateKey,
@@ -11,11 +12,11 @@ import { timestampToDate } from "@/utils/protobuf/timestamp";
 import { NewVersion, Version } from "@/resources/version";
 import type { Diary } from "@/types";
 import {
+  DiaryDetails,
   CreateDiaryRequest,
   CreateDiaryResponse,
   DeleteDiaryRequest,
   DeleteDiaryResponse,
-  Diary as ProtoDiary,
   GetDiaryRequest,
   GetDiaryResponse,
   ListDiariesRequest,
@@ -42,7 +43,7 @@ export class DiariesAPI {
 
   async create(params: CreateDiaryParams): Promise<Diary> {
     const diaryKey = generateSymmetricKey();
-    const entity = encryptDetails(params, diaryKey, "");
+    const entity = encryptDetails(params, diaryKey, "", DiaryDetails);
     const encryptedDiaryKey = encryptWithPublicKey(diaryKey, this.credentials.encryptionPublicKey);
 
     const response = await this.rpc.rpc(
@@ -52,6 +53,7 @@ export class DiariesAPI {
         encryptedKeyNonce: entity.encryption.encryptedKeyNonce,
         encryptedKeyData: entity.encryption.encryptedKeyData,
         details: entity.details,
+        change: undefined,
       },
       CreateDiaryRequest,
       CreateDiaryResponse,
@@ -68,6 +70,7 @@ export class DiariesAPI {
       { title: params.title, description: params.description },
       key.value,
       key.id,
+      DiaryDetails,
     );
 
     const response = await this.rpc.rpc(
@@ -77,6 +80,7 @@ export class DiariesAPI {
         version: BigInt(params.version ?? NewVersion()),
         encryption: encrypted.encryption,
         details: encrypted.details,
+        change: undefined,
       },
       PutDiaryRequest,
       PutDiaryResponse,
@@ -129,7 +133,7 @@ export class DiariesAPI {
       this.credentials.encryptionPublicKey,
     );
 
-    const details = decryptDetails(value, diaryKey);
+    const details = decryptDetails(value, diaryKey, DiaryDetails);
 
     return {
       id: value.id,

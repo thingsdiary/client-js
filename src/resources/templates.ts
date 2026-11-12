@@ -1,3 +1,4 @@
+import type { EncryptedTemplate as ProtoTemplate } from "@/proto/encrypted_template";
 import { RealtimeClient } from "@/realtime";
 import { KeysAPI } from "@/resources/keys";
 import { decryptDetails, encryptDetails } from "@/resources/details";
@@ -5,6 +6,7 @@ import { optionalTimestampToDate, timestampToDate } from "@/utils/protobuf/times
 import { NewVersion, Version } from "@/resources/version";
 import type { Template } from "@/types";
 import {
+  TemplateDetails,
   DeleteTemplateRequest,
   DeleteTemplateResponse,
   GetTemplateRequest,
@@ -15,7 +17,6 @@ import {
   PutTemplateResponse,
   RestoreTemplateRequest,
   RestoreTemplateResponse,
-  Template as ProtoTemplate,
 } from "@/proto/template";
 
 export interface CreateTemplateParams {
@@ -42,7 +43,12 @@ export class TemplatesAPI {
 
   async put(diaryId: string, templateId: string, params: PutTemplateParams): Promise<Template> {
     const key = await this.keys.getActive(diaryId);
-    const encrypted = encryptDetails({ content: params.content }, key.value, key.id);
+    const encrypted = encryptDetails(
+      { content: params.content },
+      key.value,
+      key.id,
+      TemplateDetails,
+    );
 
     const response = await this.rpc.rpc(
       "io.thingsdiary.v1.template.put",
@@ -127,7 +133,7 @@ export class TemplatesAPI {
   }
 
   private decrypt(value: ProtoTemplate, key: Uint8Array): Template {
-    const details = decryptDetails(value, key);
+    const details = decryptDetails(value, key, TemplateDetails);
 
     return {
       id: value.id,
