@@ -30,7 +30,6 @@ describe("Templates API", () => {
     expect(template.content).toBe("This is my test template content");
     expect(template.created_at).toBeInstanceOf(Date);
     expect(template.updated_at).toBeInstanceOf(Date);
-    expect(template.version).toBeGreaterThan(0);
   });
 
   it("should list all templates", async () => {
@@ -76,7 +75,6 @@ describe("Templates API", () => {
     expect(updated.id).toBe(template.id);
     expect(updated.diary_id).toBe(diaryId);
     expect(updated.content).toBe("Template After Update");
-    expect(updated.version).toBeGreaterThan(template.version);
   });
 
   it("should soft-delete and restore a template", async () => {

@@ -42,7 +42,6 @@ export interface Template {
   updated_at: Date;
   deleted_at?: Date;
   removed_at?: Date;
-  version: number;
 }
 
 export interface EncryptionKey {

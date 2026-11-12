@@ -6,14 +6,15 @@
 
 /* eslint-disable */
 import { BinaryReader, BinaryWriter } from "@bufbuild/protobuf/wire";
+import { EncryptedChange } from "./change.js";
 import { EncryptedTemplate } from "./encrypted_template.js";
-import { EncryptedData, Encryption } from "./encryption.js";
+import { ErrorCode } from "./errors.js";
 import { Timestamp } from "./google/protobuf/timestamp.js";
 import { Page, PageInfo } from "./pagination.js";
 
 export const protobufPackage = "io.thingsdiary.v1";
 
-/** Plaintext serialized before encrypting EncryptedTemplate.details. */
+/** Plaintext serialized before encrypting a template change payload. */
 export interface TemplateDetails {
   content: string;
 }
@@ -41,12 +42,11 @@ export interface ListTemplatesResponse {
 export interface PutTemplateRequest {
   diaryId: string;
   templateId: string;
-  version: bigint;
-  encryption: Encryption | undefined;
-  details: EncryptedData | undefined;
+  encryptedChange: EncryptedChange | undefined;
 }
 
 export interface PutTemplateResponse {
+  errorCode: ErrorCode;
   template: EncryptedTemplate | undefined;
 }
 
@@ -54,36 +54,43 @@ export interface DeleteTemplateRequest {
   diaryId: string;
   templateId: string;
   soft?: boolean | undefined;
+  encryptedChange: EncryptedChange | undefined;
 }
 
 export interface DeleteTemplateResponse {
+  errorCode: ErrorCode;
 }
 
 export interface RestoreTemplateRequest {
   diaryId: string;
   templateId: string;
+  encryptedChange: EncryptedChange | undefined;
 }
 
 export interface RestoreTemplateResponse {
+  errorCode: ErrorCode;
   template: EncryptedTemplate | undefined;
 }
 
 export interface TemplateChanged {
   eventId: string;
   occurredAt: Timestamp | undefined;
-  template: EncryptedTemplate | undefined;
+  diaryId: string;
+  templateId: string;
 }
 
 export interface TemplateDeleted {
   eventId: string;
   occurredAt: Timestamp | undefined;
-  template: EncryptedTemplate | undefined;
+  diaryId: string;
+  templateId: string;
 }
 
 export interface TemplateRestored {
   eventId: string;
   occurredAt: Timestamp | undefined;
-  template: EncryptedTemplate | undefined;
+  diaryId: string;
+  templateId: string;
 }
 
 function createBaseTemplateDetails(): TemplateDetails {
@@ -350,7 +357,7 @@ export const ListTemplatesResponse: MessageFns<ListTemplatesResponse> = {
 };
 
 function createBasePutTemplateRequest(): PutTemplateRequest {
-  return { diaryId: "", templateId: "", version: 0n, encryption: undefined, details: undefined };
+  return { diaryId: "", templateId: "", encryptedChange: undefined };
 }
 
 export const PutTemplateRequest: MessageFns<PutTemplateRequest> = {
@@ -361,17 +368,8 @@ export const PutTemplateRequest: MessageFns<PutTemplateRequest> = {
     if (message.templateId !== "") {
       writer.uint32(18).string(message.templateId);
     }
-    if (message.version !== 0n) {
-      if (BigInt.asUintN(64, message.version) !== message.version) {
-        throw new globalThis.Error("value provided for field message.version of type uint64 too large");
-      }
-      writer.uint32(24).uint64(message.version);
-    }
-    if (message.encryption !== undefined) {
-      Encryption.encode(message.encryption, writer.uint32(34).fork()).join();
-    }
-    if (message.details !== undefined) {
-      EncryptedData.encode(message.details, writer.uint32(42).fork()).join();
+    if (message.encryptedChange !== undefined) {
+      EncryptedChange.encode(message.encryptedChange, writer.uint32(50).fork()).join();
     }
     return writer;
   },
@@ -405,28 +403,12 @@ export const PutTemplateRequest: MessageFns<PutTemplateRequest> = {
             message.templateId = reader.string();
             continue;
           }
-          case 3: {
-            if (tag !== 24) {
+          case 6: {
+            if (tag !== 50) {
               break;
             }
 
-            message.version = reader.uint64() as bigint;
-            continue;
-          }
-          case 4: {
-            if (tag !== 34) {
-              break;
-            }
-
-            message.encryption = Encryption.decode(reader, reader.uint32());
-            continue;
-          }
-          case 5: {
-            if (tag !== 42) {
-              break;
-            }
-
-            message.details = EncryptedData.decode(reader, reader.uint32());
+            message.encryptedChange = EncryptedChange.decode(reader, reader.uint32());
             continue;
           }
         }
@@ -443,13 +425,16 @@ export const PutTemplateRequest: MessageFns<PutTemplateRequest> = {
 };
 
 function createBasePutTemplateResponse(): PutTemplateResponse {
-  return { template: undefined };
+  return { errorCode: 0, template: undefined };
 }
 
 export const PutTemplateResponse: MessageFns<PutTemplateResponse> = {
   encode(message: PutTemplateResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.errorCode !== 0) {
+      writer.uint32(8).int32(message.errorCode);
+    }
     if (message.template !== undefined) {
-      EncryptedTemplate.encode(message.template, writer.uint32(10).fork()).join();
+      EncryptedTemplate.encode(message.template, writer.uint32(18).fork()).join();
     }
     return writer;
   },
@@ -468,7 +453,15 @@ export const PutTemplateResponse: MessageFns<PutTemplateResponse> = {
         const tag = reader.uint32();
         switch (tag >>> 3) {
           case 1: {
-            if (tag !== 10) {
+            if (tag !== 8) {
+              break;
+            }
+
+            message.errorCode = reader.int32() as any;
+            continue;
+          }
+          case 2: {
+            if (tag !== 18) {
               break;
             }
 
@@ -489,7 +482,7 @@ export const PutTemplateResponse: MessageFns<PutTemplateResponse> = {
 };
 
 function createBaseDeleteTemplateRequest(): DeleteTemplateRequest {
-  return { diaryId: "", templateId: "", soft: undefined };
+  return { diaryId: "", templateId: "", soft: undefined, encryptedChange: undefined };
 }
 
 export const DeleteTemplateRequest: MessageFns<DeleteTemplateRequest> = {
@@ -502,6 +495,9 @@ export const DeleteTemplateRequest: MessageFns<DeleteTemplateRequest> = {
     }
     if (message.soft !== undefined) {
       writer.uint32(24).bool(message.soft);
+    }
+    if (message.encryptedChange !== undefined) {
+      EncryptedChange.encode(message.encryptedChange, writer.uint32(34).fork()).join();
     }
     return writer;
   },
@@ -543,6 +539,14 @@ export const DeleteTemplateRequest: MessageFns<DeleteTemplateRequest> = {
             message.soft = reader.bool();
             continue;
           }
+          case 4: {
+            if (tag !== 34) {
+              break;
+            }
+
+            message.encryptedChange = EncryptedChange.decode(reader, reader.uint32());
+            continue;
+          }
         }
         if ((tag & 7) === 4 || tag === 0) {
           break;
@@ -557,11 +561,14 @@ export const DeleteTemplateRequest: MessageFns<DeleteTemplateRequest> = {
 };
 
 function createBaseDeleteTemplateResponse(): DeleteTemplateResponse {
-  return {};
+  return { errorCode: 0 };
 }
 
 export const DeleteTemplateResponse: MessageFns<DeleteTemplateResponse> = {
-  encode(_: DeleteTemplateResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(message: DeleteTemplateResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.errorCode !== 0) {
+      writer.uint32(8).int32(message.errorCode);
+    }
     return writer;
   },
 
@@ -578,6 +585,14 @@ export const DeleteTemplateResponse: MessageFns<DeleteTemplateResponse> = {
       while (reader.pos < end) {
         const tag = reader.uint32();
         switch (tag >>> 3) {
+          case 1: {
+            if (tag !== 8) {
+              break;
+            }
+
+            message.errorCode = reader.int32() as any;
+            continue;
+          }
         }
         if ((tag & 7) === 4 || tag === 0) {
           break;
@@ -592,7 +607,7 @@ export const DeleteTemplateResponse: MessageFns<DeleteTemplateResponse> = {
 };
 
 function createBaseRestoreTemplateRequest(): RestoreTemplateRequest {
-  return { diaryId: "", templateId: "" };
+  return { diaryId: "", templateId: "", encryptedChange: undefined };
 }
 
 export const RestoreTemplateRequest: MessageFns<RestoreTemplateRequest> = {
@@ -602,6 +617,9 @@ export const RestoreTemplateRequest: MessageFns<RestoreTemplateRequest> = {
     }
     if (message.templateId !== "") {
       writer.uint32(18).string(message.templateId);
+    }
+    if (message.encryptedChange !== undefined) {
+      EncryptedChange.encode(message.encryptedChange, writer.uint32(26).fork()).join();
     }
     return writer;
   },
@@ -635,6 +653,14 @@ export const RestoreTemplateRequest: MessageFns<RestoreTemplateRequest> = {
             message.templateId = reader.string();
             continue;
           }
+          case 3: {
+            if (tag !== 26) {
+              break;
+            }
+
+            message.encryptedChange = EncryptedChange.decode(reader, reader.uint32());
+            continue;
+          }
         }
         if ((tag & 7) === 4 || tag === 0) {
           break;
@@ -649,13 +675,16 @@ export const RestoreTemplateRequest: MessageFns<RestoreTemplateRequest> = {
 };
 
 function createBaseRestoreTemplateResponse(): RestoreTemplateResponse {
-  return { template: undefined };
+  return { errorCode: 0, template: undefined };
 }
 
 export const RestoreTemplateResponse: MessageFns<RestoreTemplateResponse> = {
   encode(message: RestoreTemplateResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.errorCode !== 0) {
+      writer.uint32(8).int32(message.errorCode);
+    }
     if (message.template !== undefined) {
-      EncryptedTemplate.encode(message.template, writer.uint32(10).fork()).join();
+      EncryptedTemplate.encode(message.template, writer.uint32(18).fork()).join();
     }
     return writer;
   },
@@ -674,7 +703,15 @@ export const RestoreTemplateResponse: MessageFns<RestoreTemplateResponse> = {
         const tag = reader.uint32();
         switch (tag >>> 3) {
           case 1: {
-            if (tag !== 10) {
+            if (tag !== 8) {
+              break;
+            }
+
+            message.errorCode = reader.int32() as any;
+            continue;
+          }
+          case 2: {
+            if (tag !== 18) {
               break;
             }
 
@@ -695,7 +732,7 @@ export const RestoreTemplateResponse: MessageFns<RestoreTemplateResponse> = {
 };
 
 function createBaseTemplateChanged(): TemplateChanged {
-  return { eventId: "", occurredAt: undefined, template: undefined };
+  return { eventId: "", occurredAt: undefined, diaryId: "", templateId: "" };
 }
 
 export const TemplateChanged: MessageFns<TemplateChanged> = {
@@ -706,8 +743,11 @@ export const TemplateChanged: MessageFns<TemplateChanged> = {
     if (message.occurredAt !== undefined) {
       Timestamp.encode(message.occurredAt, writer.uint32(18).fork()).join();
     }
-    if (message.template !== undefined) {
-      EncryptedTemplate.encode(message.template, writer.uint32(26).fork()).join();
+    if (message.diaryId !== "") {
+      writer.uint32(34).string(message.diaryId);
+    }
+    if (message.templateId !== "") {
+      writer.uint32(42).string(message.templateId);
     }
     return writer;
   },
@@ -741,12 +781,20 @@ export const TemplateChanged: MessageFns<TemplateChanged> = {
             message.occurredAt = Timestamp.decode(reader, reader.uint32());
             continue;
           }
-          case 3: {
-            if (tag !== 26) {
+          case 4: {
+            if (tag !== 34) {
               break;
             }
 
-            message.template = EncryptedTemplate.decode(reader, reader.uint32());
+            message.diaryId = reader.string();
+            continue;
+          }
+          case 5: {
+            if (tag !== 42) {
+              break;
+            }
+
+            message.templateId = reader.string();
             continue;
           }
         }
@@ -763,7 +811,7 @@ export const TemplateChanged: MessageFns<TemplateChanged> = {
 };
 
 function createBaseTemplateDeleted(): TemplateDeleted {
-  return { eventId: "", occurredAt: undefined, template: undefined };
+  return { eventId: "", occurredAt: undefined, diaryId: "", templateId: "" };
 }
 
 export const TemplateDeleted: MessageFns<TemplateDeleted> = {
@@ -774,8 +822,11 @@ export const TemplateDeleted: MessageFns<TemplateDeleted> = {
     if (message.occurredAt !== undefined) {
       Timestamp.encode(message.occurredAt, writer.uint32(18).fork()).join();
     }
-    if (message.template !== undefined) {
-      EncryptedTemplate.encode(message.template, writer.uint32(26).fork()).join();
+    if (message.diaryId !== "") {
+      writer.uint32(34).string(message.diaryId);
+    }
+    if (message.templateId !== "") {
+      writer.uint32(42).string(message.templateId);
     }
     return writer;
   },
@@ -809,12 +860,20 @@ export const TemplateDeleted: MessageFns<TemplateDeleted> = {
             message.occurredAt = Timestamp.decode(reader, reader.uint32());
             continue;
           }
-          case 3: {
-            if (tag !== 26) {
+          case 4: {
+            if (tag !== 34) {
               break;
             }
 
-            message.template = EncryptedTemplate.decode(reader, reader.uint32());
+            message.diaryId = reader.string();
+            continue;
+          }
+          case 5: {
+            if (tag !== 42) {
+              break;
+            }
+
+            message.templateId = reader.string();
             continue;
           }
         }
@@ -831,7 +890,7 @@ export const TemplateDeleted: MessageFns<TemplateDeleted> = {
 };
 
 function createBaseTemplateRestored(): TemplateRestored {
-  return { eventId: "", occurredAt: undefined, template: undefined };
+  return { eventId: "", occurredAt: undefined, diaryId: "", templateId: "" };
 }
 
 export const TemplateRestored: MessageFns<TemplateRestored> = {
@@ -842,8 +901,11 @@ export const TemplateRestored: MessageFns<TemplateRestored> = {
     if (message.occurredAt !== undefined) {
       Timestamp.encode(message.occurredAt, writer.uint32(18).fork()).join();
     }
-    if (message.template !== undefined) {
-      EncryptedTemplate.encode(message.template, writer.uint32(26).fork()).join();
+    if (message.diaryId !== "") {
+      writer.uint32(34).string(message.diaryId);
+    }
+    if (message.templateId !== "") {
+      writer.uint32(42).string(message.templateId);
     }
     return writer;
   },
@@ -877,12 +939,20 @@ export const TemplateRestored: MessageFns<TemplateRestored> = {
             message.occurredAt = Timestamp.decode(reader, reader.uint32());
             continue;
           }
-          case 3: {
-            if (tag !== 26) {
+          case 4: {
+            if (tag !== 34) {
               break;
             }
 
-            message.template = EncryptedTemplate.decode(reader, reader.uint32());
+            message.diaryId = reader.string();
+            continue;
+          }
+          case 5: {
+            if (tag !== 42) {
+              break;
+            }
+
+            message.templateId = reader.string();
             continue;
           }
         }

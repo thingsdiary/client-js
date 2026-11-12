@@ -6,7 +6,7 @@
 
 /* eslint-disable */
 import { BinaryReader, BinaryWriter } from "@bufbuild/protobuf/wire";
-import { EncryptedData, Encryption } from "./encryption.js";
+import { EncryptedChange } from "./change.js";
 import { Timestamp } from "./google/protobuf/timestamp.js";
 
 export const protobufPackage = "io.thingsdiary.v1";
@@ -14,27 +14,22 @@ export const protobufPackage = "io.thingsdiary.v1";
 export interface EncryptedTemplate {
   id: string;
   diaryId: string;
-  /** @deprecated */
-  version: bigint;
   createdAt: Timestamp | undefined;
   updatedAt: Timestamp | undefined;
   deletedAt?: Timestamp | undefined;
   removedAt?: Timestamp | undefined;
-  encryption: Encryption | undefined;
-  details: EncryptedData | undefined;
+  change: EncryptedChange | undefined;
 }
 
 function createBaseEncryptedTemplate(): EncryptedTemplate {
   return {
     id: "",
     diaryId: "",
-    version: 0n,
     createdAt: undefined,
     updatedAt: undefined,
     deletedAt: undefined,
     removedAt: undefined,
-    encryption: undefined,
-    details: undefined,
+    change: undefined,
   };
 }
 
@@ -45,12 +40,6 @@ export const EncryptedTemplate: MessageFns<EncryptedTemplate> = {
     }
     if (message.diaryId !== "") {
       writer.uint32(18).string(message.diaryId);
-    }
-    if (message.version !== 0n) {
-      if (BigInt.asUintN(64, message.version) !== message.version) {
-        throw new globalThis.Error("value provided for field message.version of type uint64 too large");
-      }
-      writer.uint32(24).uint64(message.version);
     }
     if (message.createdAt !== undefined) {
       Timestamp.encode(message.createdAt, writer.uint32(34).fork()).join();
@@ -64,11 +53,8 @@ export const EncryptedTemplate: MessageFns<EncryptedTemplate> = {
     if (message.removedAt !== undefined) {
       Timestamp.encode(message.removedAt, writer.uint32(58).fork()).join();
     }
-    if (message.encryption !== undefined) {
-      Encryption.encode(message.encryption, writer.uint32(66).fork()).join();
-    }
-    if (message.details !== undefined) {
-      EncryptedData.encode(message.details, writer.uint32(74).fork()).join();
+    if (message.change !== undefined) {
+      EncryptedChange.encode(message.change, writer.uint32(82).fork()).join();
     }
     return writer;
   },
@@ -100,14 +86,6 @@ export const EncryptedTemplate: MessageFns<EncryptedTemplate> = {
             }
 
             message.diaryId = reader.string();
-            continue;
-          }
-          case 3: {
-            if (tag !== 24) {
-              break;
-            }
-
-            message.version = reader.uint64() as bigint;
             continue;
           }
           case 4: {
@@ -142,20 +120,12 @@ export const EncryptedTemplate: MessageFns<EncryptedTemplate> = {
             message.removedAt = Timestamp.decode(reader, reader.uint32());
             continue;
           }
-          case 8: {
-            if (tag !== 66) {
+          case 10: {
+            if (tag !== 82) {
               break;
             }
 
-            message.encryption = Encryption.decode(reader, reader.uint32());
-            continue;
-          }
-          case 9: {
-            if (tag !== 74) {
-              break;
-            }
-
-            message.details = EncryptedData.decode(reader, reader.uint32());
+            message.change = EncryptedChange.decode(reader, reader.uint32());
             continue;
           }
         }
