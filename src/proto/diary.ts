@@ -8,6 +8,7 @@
 import { BinaryReader, BinaryWriter } from "@bufbuild/protobuf/wire";
 import { EncryptedChange } from "./change.js";
 import { EncryptedDiary } from "./encrypted_diary.js";
+import { ErrorCode } from "./errors.js";
 import { Timestamp } from "./google/protobuf/timestamp.js";
 import { Page, PageInfo } from "./pagination.js";
 
@@ -26,6 +27,7 @@ export interface CreateDiaryRequest {
 }
 
 export interface CreateDiaryResponse {
+  errorCode: ErrorCode;
   diaryId: string;
 }
 
@@ -58,6 +60,7 @@ export interface PutDiaryRequest {
 }
 
 export interface PutDiaryResponse {
+  errorCode: ErrorCode;
 }
 
 export interface DiaryChanged {
@@ -71,6 +74,7 @@ export interface DeleteDiaryRequest {
 }
 
 export interface DeleteDiaryResponse {
+  errorCode: ErrorCode;
 }
 
 export interface DiaryDeleted {
@@ -194,13 +198,16 @@ export const CreateDiaryRequest: MessageFns<CreateDiaryRequest> = {
 };
 
 function createBaseCreateDiaryResponse(): CreateDiaryResponse {
-  return { diaryId: "" };
+  return { errorCode: 0, diaryId: "" };
 }
 
 export const CreateDiaryResponse: MessageFns<CreateDiaryResponse> = {
   encode(message: CreateDiaryResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.errorCode !== 0) {
+      writer.uint32(8).int32(message.errorCode);
+    }
     if (message.diaryId !== "") {
-      writer.uint32(10).string(message.diaryId);
+      writer.uint32(18).string(message.diaryId);
     }
     return writer;
   },
@@ -219,7 +226,15 @@ export const CreateDiaryResponse: MessageFns<CreateDiaryResponse> = {
         const tag = reader.uint32();
         switch (tag >>> 3) {
           case 1: {
-            if (tag !== 10) {
+            if (tag !== 8) {
+              break;
+            }
+
+            message.errorCode = reader.int32() as any;
+            continue;
+          }
+          case 2: {
+            if (tag !== 18) {
               break;
             }
 
@@ -560,11 +575,14 @@ export const PutDiaryRequest: MessageFns<PutDiaryRequest> = {
 };
 
 function createBasePutDiaryResponse(): PutDiaryResponse {
-  return {};
+  return { errorCode: 0 };
 }
 
 export const PutDiaryResponse: MessageFns<PutDiaryResponse> = {
-  encode(_: PutDiaryResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(message: PutDiaryResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.errorCode !== 0) {
+      writer.uint32(8).int32(message.errorCode);
+    }
     return writer;
   },
 
@@ -581,6 +599,14 @@ export const PutDiaryResponse: MessageFns<PutDiaryResponse> = {
       while (reader.pos < end) {
         const tag = reader.uint32();
         switch (tag >>> 3) {
+          case 1: {
+            if (tag !== 8) {
+              break;
+            }
+
+            message.errorCode = reader.int32() as any;
+            continue;
+          }
         }
         if ((tag & 7) === 4 || tag === 0) {
           break;
@@ -709,11 +735,14 @@ export const DeleteDiaryRequest: MessageFns<DeleteDiaryRequest> = {
 };
 
 function createBaseDeleteDiaryResponse(): DeleteDiaryResponse {
-  return {};
+  return { errorCode: 0 };
 }
 
 export const DeleteDiaryResponse: MessageFns<DeleteDiaryResponse> = {
-  encode(_: DeleteDiaryResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(message: DeleteDiaryResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.errorCode !== 0) {
+      writer.uint32(8).int32(message.errorCode);
+    }
     return writer;
   },
 
@@ -730,6 +759,14 @@ export const DeleteDiaryResponse: MessageFns<DeleteDiaryResponse> = {
       while (reader.pos < end) {
         const tag = reader.uint32();
         switch (tag >>> 3) {
+          case 1: {
+            if (tag !== 8) {
+              break;
+            }
+
+            message.errorCode = reader.int32() as any;
+            continue;
+          }
         }
         if ((tag & 7) === 4 || tag === 0) {
           break;
