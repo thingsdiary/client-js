@@ -1,5 +1,4 @@
 import type { EncryptedEntry as ProtoEntry } from "@/proto/encrypted_entry";
-import { encryptWithSymmetricKey } from "@/crypto/encryption";
 import { RealtimeClient } from "@/realtime";
 import { KeysAPI } from "@/resources/keys";
 import { decryptDetails, encryptDetails } from "@/resources/details";
@@ -8,7 +7,6 @@ import { NewVersion, Version } from "@/resources/version";
 import type { Entry } from "@/types";
 import {
   EntryDetails,
-  EntryPreview,
   DeleteEntryRequest,
   DeleteEntryResponse,
   GetEntryRequest,
@@ -53,10 +51,6 @@ export class EntriesAPI {
       previewHidden: params.preview_hidden ?? false,
     };
     const encrypted = encryptDetails(plain, key.value, key.id, EntryDetails);
-    const previewValue = encryptWithSymmetricKey(
-      EntryPreview.encode(plain).finish(),
-      encrypted.key,
-    );
 
     const response = await this.rpc.rpc(
       "io.thingsdiary.v1.entry.put",
@@ -67,7 +61,6 @@ export class EntriesAPI {
         topicId: params.topic_id === null ? undefined : params.topic_id,
         encryption: encrypted.encryption,
         details: encrypted.details,
-        preview: { nonce: previewValue.nonce, data: previewValue.ciphertext },
       },
       PutEntryRequest,
       PutEntryResponse,

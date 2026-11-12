@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { DiaryDetails } from "./diary";
-import { EntryDetails, EntryPreview } from "./entry";
+import { EntryDetails } from "./entry";
 import { EncryptedEntry } from "./encrypted_entry";
 import { EncryptedTemplate } from "./encrypted_template";
 import { EncryptedTopic } from "./encrypted_topic";
@@ -21,9 +21,8 @@ describe("domain payload wire format", () => {
     check(DiaryDetails, { title: "Diary", description: "Личное" }, "0a054469617279120cd09bd0b8d187d0bdd0bed0b5");
   });
 
-  it("serializes entry details and preview", () => {
+  it("serializes entry details", () => {
     check(EntryDetails, entry, "0a0a48656c6c6f20f09f8c8d10012001");
-    check(EntryPreview, entry, "0a0a48656c6c6f20f09f8c8d10012001");
   });
 
   it("serializes topic details", () => {

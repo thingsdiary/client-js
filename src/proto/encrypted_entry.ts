@@ -22,7 +22,6 @@ export interface EncryptedEntry {
   topicId?: string | undefined;
   encryption: Encryption | undefined;
   details: EncryptedData | undefined;
-  preview: EncryptedData | undefined;
 }
 
 function createBaseEncryptedEntry(): EncryptedEntry {
@@ -37,7 +36,6 @@ function createBaseEncryptedEntry(): EncryptedEntry {
     topicId: undefined,
     encryption: undefined,
     details: undefined,
-    preview: undefined,
   };
 }
 
@@ -75,9 +73,6 @@ export const EncryptedEntry: MessageFns<EncryptedEntry> = {
     }
     if (message.details !== undefined) {
       EncryptedData.encode(message.details, writer.uint32(82).fork()).join();
-    }
-    if (message.preview !== undefined) {
-      EncryptedData.encode(message.preview, writer.uint32(90).fork()).join();
     }
     return writer;
   },
@@ -173,14 +168,6 @@ export const EncryptedEntry: MessageFns<EncryptedEntry> = {
             }
 
             message.details = EncryptedData.decode(reader, reader.uint32());
-            continue;
-          }
-          case 11: {
-            if (tag !== 90) {
-              break;
-            }
-
-            message.preview = EncryptedData.decode(reader, reader.uint32());
             continue;
           }
         }

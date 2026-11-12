@@ -21,17 +21,6 @@ export interface EntryDetails {
   previewHidden: boolean;
 }
 
-/**
- * Plaintext serialized before encrypting EncryptedEntry.preview.
- * The current clients use the same content and flags as EntryDetails.
- */
-export interface EntryPreview {
-  content: string;
-  archived: boolean;
-  bookmarked: boolean;
-  previewHidden: boolean;
-}
-
 /** Centrifugo methods: io.thingsdiary.v1.entry.{get,list,put,delete,restore}. */
 export interface GetEntryRequest {
   diaryId: string;
@@ -59,7 +48,6 @@ export interface PutEntryRequest {
   topicId?: string | undefined;
   encryption: Encryption | undefined;
   details: EncryptedData | undefined;
-  preview: EncryptedData | undefined;
 }
 
 export interface PutEntryResponse {
@@ -133,85 +121,6 @@ export const EntryDetails: MessageFns<EntryDetails> = {
     try {
       const end = length === undefined ? reader.len : reader.pos + length;
       const message = createBaseEntryDetails();
-      while (reader.pos < end) {
-        const tag = reader.uint32();
-        switch (tag >>> 3) {
-          case 1: {
-            if (tag !== 10) {
-              break;
-            }
-
-            message.content = reader.string();
-            continue;
-          }
-          case 2: {
-            if (tag !== 16) {
-              break;
-            }
-
-            message.archived = reader.bool();
-            continue;
-          }
-          case 3: {
-            if (tag !== 24) {
-              break;
-            }
-
-            message.bookmarked = reader.bool();
-            continue;
-          }
-          case 4: {
-            if (tag !== 32) {
-              break;
-            }
-
-            message.previewHidden = reader.bool();
-            continue;
-          }
-        }
-        if ((tag & 7) === 4 || tag === 0) {
-          break;
-        }
-        reader.skip(tag & 7);
-      }
-      return message;
-    } finally {
-      (reader as any).__tsProtoDecodeDepth = previousRecursionDepth;
-    }
-  },
-};
-
-function createBaseEntryPreview(): EntryPreview {
-  return { content: "", archived: false, bookmarked: false, previewHidden: false };
-}
-
-export const EntryPreview: MessageFns<EntryPreview> = {
-  encode(message: EntryPreview, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.content !== "") {
-      writer.uint32(10).string(message.content);
-    }
-    if (message.archived !== false) {
-      writer.uint32(16).bool(message.archived);
-    }
-    if (message.bookmarked !== false) {
-      writer.uint32(24).bool(message.bookmarked);
-    }
-    if (message.previewHidden !== false) {
-      writer.uint32(32).bool(message.previewHidden);
-    }
-    return writer;
-  },
-
-  decode(input: BinaryReader | Uint8Array, length?: number): EntryPreview {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const previousRecursionDepth = (reader as any).__tsProtoDecodeDepth ?? 0;
-    if (previousRecursionDepth >= 100) {
-      throw new globalThis.Error("protobuf decode recursion limit exceeded");
-    }
-    (reader as any).__tsProtoDecodeDepth = previousRecursionDepth + 1;
-    try {
-      const end = length === undefined ? reader.len : reader.pos + length;
-      const message = createBaseEntryPreview();
       while (reader.pos < end) {
         const tag = reader.uint32();
         switch (tag >>> 3) {
@@ -478,15 +387,7 @@ export const ListEntriesResponse: MessageFns<ListEntriesResponse> = {
 };
 
 function createBasePutEntryRequest(): PutEntryRequest {
-  return {
-    diaryId: "",
-    entryId: "",
-    version: 0n,
-    topicId: undefined,
-    encryption: undefined,
-    details: undefined,
-    preview: undefined,
-  };
+  return { diaryId: "", entryId: "", version: 0n, topicId: undefined, encryption: undefined, details: undefined };
 }
 
 export const PutEntryRequest: MessageFns<PutEntryRequest> = {
@@ -511,9 +412,6 @@ export const PutEntryRequest: MessageFns<PutEntryRequest> = {
     }
     if (message.details !== undefined) {
       EncryptedData.encode(message.details, writer.uint32(50).fork()).join();
-    }
-    if (message.preview !== undefined) {
-      EncryptedData.encode(message.preview, writer.uint32(58).fork()).join();
     }
     return writer;
   },
@@ -577,14 +475,6 @@ export const PutEntryRequest: MessageFns<PutEntryRequest> = {
             }
 
             message.details = EncryptedData.decode(reader, reader.uint32());
-            continue;
-          }
-          case 7: {
-            if (tag !== 58) {
-              break;
-            }
-
-            message.preview = EncryptedData.decode(reader, reader.uint32());
             continue;
           }
         }

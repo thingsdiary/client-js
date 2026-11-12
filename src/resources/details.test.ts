@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { decryptWithSymmetricKey, generateSymmetricKey } from "@/crypto/encryption";
 import { DiaryDetails } from "@/proto/diary";
-import { EntryDetails, EntryPreview } from "@/proto/entry";
+import { EntryDetails } from "@/proto/entry";
 import { TopicDetails } from "@/proto/topic";
 import { TemplateDetails } from "@/proto/template";
 import { decryptDetails, encryptDetails } from "./details";
@@ -31,10 +31,9 @@ describe("encrypted protobuf payloads", () => {
     );
   });
 
-  it("encrypts entry details and preview with true and false flags", () => {
+  it("encrypts entry details with true and false flags", () => {
     const value = { content: "Hello 🌍", archived: true, bookmarked: false, previewHidden: true };
     check(value, EntryDetails, "0a0a48656c6c6f20f09f8c8d10012001");
-    check(value, EntryPreview, "0a0a48656c6c6f20f09f8c8d10012001");
   });
 
   it("preserves explicit false in optional topic fields", () => {
@@ -50,11 +49,6 @@ describe("encrypted protobuf payloads", () => {
     check(
       { content: "", archived: false, bookmarked: false, previewHidden: false },
       EntryDetails,
-      "",
-    );
-    check(
-      { content: "", archived: false, bookmarked: false, previewHidden: false },
-      EntryPreview,
       "",
     );
     check({ title: "", description: "", color: "", entryPreviewable: undefined }, TopicDetails, "");
