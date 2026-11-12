@@ -1,14 +1,12 @@
+import { decryptWithSymmetricKey } from "@/crypto/encryption";
+import type { EncryptedChange } from "@/proto/change";
+import { EncryptedData } from "@/proto/encryption";
 import type { EncryptedEntry as ProtoEntry } from "@/proto/encrypted_entry";
-import { RealtimeClient } from "@/realtime";
-import { KeysAPI } from "@/resources/keys";
-import { decryptDetails, encryptDetails } from "@/resources/details";
-import { optionalTimestampToDate, timestampToDate } from "@/utils/protobuf/timestamp";
-import { NewVersion, Version } from "@/resources/version";
-import type { Entry } from "@/types";
+import { ErrorCode } from "@/proto/errors";
 import {
-  EntryDetails,
   DeleteEntryRequest,
   DeleteEntryResponse,
+  EntryDetails,
   GetEntryRequest,
   GetEntryResponse,
   ListEntriesRequest,
@@ -18,6 +16,11 @@ import {
   RestoreEntryRequest,
   RestoreEntryResponse,
 } from "@/proto/entry";
+import { RealtimeClient } from "@/realtime";
+import { encryptDetails } from "@/resources/details";
+import { KeysAPI } from "@/resources/keys";
+import type { EncryptionKey, Entry } from "@/types";
+import { optionalTimestampToDate, timestampToDate } from "@/utils/protobuf/timestamp";
 
 export interface PutEntryParams {
   content: string;
@@ -25,7 +28,7 @@ export interface PutEntryParams {
   archived?: boolean;
   bookmarked?: boolean;
   preview_hidden?: boolean;
-  version?: Version;
+  parent_change_ids?: string[];
 }
 
 export interface DeleteEntryOptions {
@@ -39,41 +42,125 @@ export class EntriesAPI {
   ) {}
 
   async create(diaryId: string, params: PutEntryParams): Promise<Entry> {
-    return this.put(diaryId, crypto.randomUUID(), params);
+    return this.putChange(diaryId, crypto.randomUUID(), params);
   }
 
   async put(diaryId: string, entryId: string, params: PutEntryParams): Promise<Entry> {
-    const key = await this.keys.getActive(diaryId);
-    const plain = {
-      content: params.content,
-      archived: params.archived ?? false,
-      bookmarked: params.bookmarked ?? false,
-      previewHidden: params.preview_hidden ?? false,
+    const current = await this.fetch(diaryId, entryId);
+
+    return this.putChange(diaryId, entryId, params, current);
+  }
+
+  async get(diaryId: string, entryId: string): Promise<Entry> {
+    const [value, keys] = await Promise.all([
+      this.fetch(diaryId, entryId),
+      this.keys.list(diaryId),
+    ]);
+
+    return this.decryptWithKeys(value, keys);
+  }
+
+  async list(
+    diaryId: string,
+    nextPageToken?: string,
+  ): Promise<{ entries: Entry[]; next_page_token?: string }> {
+    const [response, keys] = await Promise.all([
+      this.rpc.rpc(
+        "io.thingsdiary.v1.entry.list",
+        { diaryId, page: nextPageToken ? { limit: 0, pageToken: nextPageToken } : undefined },
+        ListEntriesRequest,
+        ListEntriesResponse,
+      ),
+      this.keys.list(diaryId),
+    ]);
+
+    return {
+      entries: response.entries.map((value) => this.decryptWithKeys(value, keys)),
+      next_page_token: response.page?.nextPageToken || undefined,
     };
-    const encrypted = encryptDetails(plain, key.value, key.id, EntryDetails);
+  }
+
+  async delete(diaryId: string, entryId: string, options?: DeleteEntryOptions): Promise<void> {
+    const current = await this.fetch(diaryId, entryId);
+    const response = await this.rpc.rpc(
+      "io.thingsdiary.v1.entry.delete",
+      {
+        diaryId,
+        entryId,
+        soft: options?.soft ?? true,
+        encryptedChange: this.nextStateChange(current),
+      },
+      DeleteEntryRequest,
+      DeleteEntryResponse,
+    );
+
+    this.requireSuccess("delete entry", response.errorCode);
+  }
+
+  async restore(diaryId: string, entryId: string): Promise<Entry> {
+    const current = await this.fetch(diaryId, entryId);
+    const response = await this.rpc.rpc(
+      "io.thingsdiary.v1.entry.restore",
+      { diaryId, entryId, encryptedChange: this.nextStateChange(current) },
+      RestoreEntryRequest,
+      RestoreEntryResponse,
+    );
+
+    this.requireSuccess("restore entry", response.errorCode);
+    if (!response.entry) throw new Error("entry is missing from response");
+
+    return this.decryptWithKeys(response.entry, await this.keys.list(diaryId));
+  }
+
+  private async putChange(
+    diaryId: string,
+    entryId: string,
+    params: PutEntryParams,
+    current?: ProtoEntry,
+  ): Promise<Entry> {
+    const key = await this.keys.getActive(diaryId);
+    const encrypted = encryptDetails(
+      {
+        content: params.content,
+        archived: params.archived ?? false,
+        bookmarked: params.bookmarked ?? false,
+        previewHidden: params.preview_hidden ?? false,
+      },
+      key.value,
+      key.id,
+      EntryDetails,
+    );
+    const payload = EncryptedData.encode(encrypted.details).finish();
+    const currentChange = current?.change?.change;
+    if (current && !currentChange) throw new Error("entry change is missing");
 
     const response = await this.rpc.rpc(
       "io.thingsdiary.v1.entry.put",
       {
         diaryId,
         entryId,
-        version: BigInt(params.version ?? NewVersion()),
         topicId: params.topic_id === null ? undefined : params.topic_id,
-        encryption: encrypted.encryption,
-        details: encrypted.details,
+        encryptedChange: {
+          change: {
+            id: crypto.randomUUID(),
+            objectId: current ? entryId : "",
+            parentChangeIds: params.parent_change_ids ?? (currentChange ? [currentChange.id] : []),
+            payload,
+          },
+          encryption: encrypted.encryption,
+        },
       },
       PutEntryRequest,
       PutEntryResponse,
     );
 
+    this.requireSuccess("put entry", response.errorCode);
     if (!response.entry) throw new Error("entry is missing from response");
 
     return this.decrypt(response.entry, key.value);
   }
 
-  async get(diaryId: string, entryId: string): Promise<Entry> {
-    const key = await this.keys.getActive(diaryId);
-
+  private async fetch(diaryId: string, entryId: string): Promise<ProtoEntry> {
     const response = await this.rpc.rpc(
       "io.thingsdiary.v1.entry.get",
       { diaryId, entryId },
@@ -81,58 +168,51 @@ export class EntriesAPI {
       GetEntryResponse,
     );
 
-    if (!response!.entry) throw new Error("entry is missing from response");
+    if (!response.entry) throw new Error("entry is missing from response");
 
-    return this.decrypt(response!.entry, key.value);
+    return response.entry;
   }
 
-  async list(
-    diaryId: string,
-    nextPageToken?: string,
-  ): Promise<{ entries: Entry[]; next_page_token?: string }> {
-    const key = await this.keys.getActive(diaryId);
-
-    const response = await this.rpc.rpc(
-      "io.thingsdiary.v1.entry.list",
-      { diaryId, page: nextPageToken ? { limit: 0, pageToken: nextPageToken } : undefined },
-      ListEntriesRequest,
-      ListEntriesResponse,
-    );
+  private nextStateChange(value: ProtoEntry): EncryptedChange {
+    const encryptedChange = value.change;
+    if (!encryptedChange?.change || !encryptedChange.encryption) {
+      throw new Error("entry change is missing");
+    }
 
     return {
-      entries: response.entries.map((value) => this.decrypt(value, key.value)),
-      next_page_token: response.page?.nextPageToken || undefined,
+      change: {
+        id: crypto.randomUUID(),
+        objectId: value.id,
+        parentChangeIds: [encryptedChange.change.id],
+        payload: encryptedChange.change.payload,
+      },
+      encryption: encryptedChange.encryption,
     };
   }
 
-  async delete(diaryId: string, entryId: string, options?: DeleteEntryOptions): Promise<void> {
-    await this.rpc.rpc(
-      "io.thingsdiary.v1.entry.delete",
-      { diaryId, entryId, soft: options?.soft ?? true },
-      DeleteEntryRequest,
-      DeleteEntryResponse,
-    );
+  private decryptWithKeys(value: ProtoEntry, keys: EncryptionKey[]): Entry {
+    const keyId = value.change?.encryption?.diaryKeyId;
+    const key = keys.find((candidate) => candidate.id === keyId);
+    if (!key) throw new Error("entry encryption key is missing");
+
+    return this.decrypt(value, key.value);
   }
 
-  async restore(diaryId: string, entryId: string): Promise<Entry> {
-    const keys = await this.keys.list(diaryId);
-    const response = await this.rpc.rpc(
-      "io.thingsdiary.v1.entry.restore",
-      { diaryId, entryId },
-      RestoreEntryRequest,
-      RestoreEntryResponse,
+  private decrypt(value: ProtoEntry, diaryKey: Uint8Array): Entry {
+    const encryptedChange = value.change;
+    if (!encryptedChange?.change || !encryptedChange.encryption) {
+      throw new Error("entry change is missing");
+    }
+
+    const encryptedData = EncryptedData.decode(encryptedChange.change.payload);
+    const entityKey = decryptWithSymmetricKey(
+      encryptedChange.encryption.encryptedKeyNonce,
+      encryptedChange.encryption.encryptedKeyData,
+      diaryKey,
     );
-
-    if (!response.entry) throw new Error("entry is missing from response");
-
-    const key = keys.find((value) => value.id === response.entry?.encryption?.diaryKeyId);
-    if (!key) throw new Error("Entry encryption key is missing");
-
-    return this.decrypt(response.entry, key.value);
-  }
-
-  private decrypt(value: ProtoEntry, key: Uint8Array): Entry {
-    const details = decryptDetails(value, key, EntryDetails);
+    const details = EntryDetails.decode(
+      decryptWithSymmetricKey(encryptedData.nonce, encryptedData.data, entityKey),
+    );
 
     return {
       id: value.id,
@@ -146,7 +226,12 @@ export class EntriesAPI {
       updated_at: timestampToDate(value.updatedAt),
       deleted_at: optionalTimestampToDate(value.deletedAt),
       removed_at: optionalTimestampToDate(value.removedAt),
-      version: Number(value.version),
     };
+  }
+
+  private requireSuccess(action: string, errorCode: ErrorCode): void {
+    if (errorCode !== ErrorCode.ERROR_CODE_UNSPECIFIED) {
+      throw new Error(`${action} failed: ${ErrorCode[errorCode] ?? errorCode}`);
+    }
   }
 }

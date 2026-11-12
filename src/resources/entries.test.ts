@@ -33,7 +33,6 @@ describe("Entries API", () => {
     expect(entry.preview_hidden).toBe(false);
     expect(entry.created_at).toBeInstanceOf(Date);
     expect(entry.updated_at).toBeInstanceOf(Date);
-    expect(entry.version).toBeGreaterThan(0);
   });
 
   it("should list all entries", async () => {
@@ -78,7 +77,6 @@ describe("Entries API", () => {
     expect(updated).toBeDefined();
     expect(updated.id).toBe(entry.id);
     expect(updated.content).toBe("Entry After Update");
-    expect(updated.version).toBeGreaterThan(entry.version);
   });
 
   it("should soft-delete and restore an entry", async () => {

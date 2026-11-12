@@ -6,14 +6,15 @@
 
 /* eslint-disable */
 import { BinaryReader, BinaryWriter } from "@bufbuild/protobuf/wire";
+import { EncryptedChange } from "./change.js";
 import { EncryptedEntry } from "./encrypted_entry.js";
-import { EncryptedData, Encryption } from "./encryption.js";
+import { ErrorCode } from "./errors.js";
 import { Timestamp } from "./google/protobuf/timestamp.js";
 import { Page, PageInfo } from "./pagination.js";
 
 export const protobufPackage = "io.thingsdiary.v1";
 
-/** Plaintext serialized before encrypting EncryptedEntry.details. */
+/** Plaintext serialized before encrypting an entry change payload. */
 export interface EntryDetails {
   content: string;
   archived: boolean;
@@ -44,13 +45,12 @@ export interface ListEntriesResponse {
 export interface PutEntryRequest {
   diaryId: string;
   entryId: string;
-  version: bigint;
   topicId?: string | undefined;
-  encryption: Encryption | undefined;
-  details: EncryptedData | undefined;
+  encryptedChange: EncryptedChange | undefined;
 }
 
 export interface PutEntryResponse {
+  errorCode: ErrorCode;
   entry: EncryptedEntry | undefined;
 }
 
@@ -58,36 +58,43 @@ export interface DeleteEntryRequest {
   diaryId: string;
   entryId: string;
   soft?: boolean | undefined;
+  encryptedChange: EncryptedChange | undefined;
 }
 
 export interface DeleteEntryResponse {
+  errorCode: ErrorCode;
 }
 
 export interface RestoreEntryRequest {
   diaryId: string;
   entryId: string;
+  encryptedChange: EncryptedChange | undefined;
 }
 
 export interface RestoreEntryResponse {
+  errorCode: ErrorCode;
   entry: EncryptedEntry | undefined;
 }
 
 export interface EntryChanged {
   eventId: string;
   occurredAt: Timestamp | undefined;
-  entry: EncryptedEntry | undefined;
+  diaryId: string;
+  entryId: string;
 }
 
 export interface EntryDeleted {
   eventId: string;
   occurredAt: Timestamp | undefined;
-  entry: EncryptedEntry | undefined;
+  diaryId: string;
+  entryId: string;
 }
 
 export interface EntryRestored {
   eventId: string;
   occurredAt: Timestamp | undefined;
-  entry: EncryptedEntry | undefined;
+  diaryId: string;
+  entryId: string;
 }
 
 function createBaseEntryDetails(): EntryDetails {
@@ -387,7 +394,7 @@ export const ListEntriesResponse: MessageFns<ListEntriesResponse> = {
 };
 
 function createBasePutEntryRequest(): PutEntryRequest {
-  return { diaryId: "", entryId: "", version: 0n, topicId: undefined, encryption: undefined, details: undefined };
+  return { diaryId: "", entryId: "", topicId: undefined, encryptedChange: undefined };
 }
 
 export const PutEntryRequest: MessageFns<PutEntryRequest> = {
@@ -398,20 +405,11 @@ export const PutEntryRequest: MessageFns<PutEntryRequest> = {
     if (message.entryId !== "") {
       writer.uint32(18).string(message.entryId);
     }
-    if (message.version !== 0n) {
-      if (BigInt.asUintN(64, message.version) !== message.version) {
-        throw new globalThis.Error("value provided for field message.version of type uint64 too large");
-      }
-      writer.uint32(24).uint64(message.version);
-    }
     if (message.topicId !== undefined) {
-      writer.uint32(34).string(message.topicId);
+      writer.uint32(26).string(message.topicId);
     }
-    if (message.encryption !== undefined) {
-      Encryption.encode(message.encryption, writer.uint32(42).fork()).join();
-    }
-    if (message.details !== undefined) {
-      EncryptedData.encode(message.details, writer.uint32(50).fork()).join();
+    if (message.encryptedChange !== undefined) {
+      EncryptedChange.encode(message.encryptedChange, writer.uint32(34).fork()).join();
     }
     return writer;
   },
@@ -446,11 +444,11 @@ export const PutEntryRequest: MessageFns<PutEntryRequest> = {
             continue;
           }
           case 3: {
-            if (tag !== 24) {
+            if (tag !== 26) {
               break;
             }
 
-            message.version = reader.uint64() as bigint;
+            message.topicId = reader.string();
             continue;
           }
           case 4: {
@@ -458,23 +456,7 @@ export const PutEntryRequest: MessageFns<PutEntryRequest> = {
               break;
             }
 
-            message.topicId = reader.string();
-            continue;
-          }
-          case 5: {
-            if (tag !== 42) {
-              break;
-            }
-
-            message.encryption = Encryption.decode(reader, reader.uint32());
-            continue;
-          }
-          case 6: {
-            if (tag !== 50) {
-              break;
-            }
-
-            message.details = EncryptedData.decode(reader, reader.uint32());
+            message.encryptedChange = EncryptedChange.decode(reader, reader.uint32());
             continue;
           }
         }
@@ -491,13 +473,16 @@ export const PutEntryRequest: MessageFns<PutEntryRequest> = {
 };
 
 function createBasePutEntryResponse(): PutEntryResponse {
-  return { entry: undefined };
+  return { errorCode: 0, entry: undefined };
 }
 
 export const PutEntryResponse: MessageFns<PutEntryResponse> = {
   encode(message: PutEntryResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.errorCode !== 0) {
+      writer.uint32(8).int32(message.errorCode);
+    }
     if (message.entry !== undefined) {
-      EncryptedEntry.encode(message.entry, writer.uint32(10).fork()).join();
+      EncryptedEntry.encode(message.entry, writer.uint32(18).fork()).join();
     }
     return writer;
   },
@@ -516,7 +501,15 @@ export const PutEntryResponse: MessageFns<PutEntryResponse> = {
         const tag = reader.uint32();
         switch (tag >>> 3) {
           case 1: {
-            if (tag !== 10) {
+            if (tag !== 8) {
+              break;
+            }
+
+            message.errorCode = reader.int32() as any;
+            continue;
+          }
+          case 2: {
+            if (tag !== 18) {
               break;
             }
 
@@ -537,7 +530,7 @@ export const PutEntryResponse: MessageFns<PutEntryResponse> = {
 };
 
 function createBaseDeleteEntryRequest(): DeleteEntryRequest {
-  return { diaryId: "", entryId: "", soft: undefined };
+  return { diaryId: "", entryId: "", soft: undefined, encryptedChange: undefined };
 }
 
 export const DeleteEntryRequest: MessageFns<DeleteEntryRequest> = {
@@ -550,6 +543,9 @@ export const DeleteEntryRequest: MessageFns<DeleteEntryRequest> = {
     }
     if (message.soft !== undefined) {
       writer.uint32(24).bool(message.soft);
+    }
+    if (message.encryptedChange !== undefined) {
+      EncryptedChange.encode(message.encryptedChange, writer.uint32(34).fork()).join();
     }
     return writer;
   },
@@ -591,6 +587,14 @@ export const DeleteEntryRequest: MessageFns<DeleteEntryRequest> = {
             message.soft = reader.bool();
             continue;
           }
+          case 4: {
+            if (tag !== 34) {
+              break;
+            }
+
+            message.encryptedChange = EncryptedChange.decode(reader, reader.uint32());
+            continue;
+          }
         }
         if ((tag & 7) === 4 || tag === 0) {
           break;
@@ -605,11 +609,14 @@ export const DeleteEntryRequest: MessageFns<DeleteEntryRequest> = {
 };
 
 function createBaseDeleteEntryResponse(): DeleteEntryResponse {
-  return {};
+  return { errorCode: 0 };
 }
 
 export const DeleteEntryResponse: MessageFns<DeleteEntryResponse> = {
-  encode(_: DeleteEntryResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(message: DeleteEntryResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.errorCode !== 0) {
+      writer.uint32(8).int32(message.errorCode);
+    }
     return writer;
   },
 
@@ -626,6 +633,14 @@ export const DeleteEntryResponse: MessageFns<DeleteEntryResponse> = {
       while (reader.pos < end) {
         const tag = reader.uint32();
         switch (tag >>> 3) {
+          case 1: {
+            if (tag !== 8) {
+              break;
+            }
+
+            message.errorCode = reader.int32() as any;
+            continue;
+          }
         }
         if ((tag & 7) === 4 || tag === 0) {
           break;
@@ -640,7 +655,7 @@ export const DeleteEntryResponse: MessageFns<DeleteEntryResponse> = {
 };
 
 function createBaseRestoreEntryRequest(): RestoreEntryRequest {
-  return { diaryId: "", entryId: "" };
+  return { diaryId: "", entryId: "", encryptedChange: undefined };
 }
 
 export const RestoreEntryRequest: MessageFns<RestoreEntryRequest> = {
@@ -650,6 +665,9 @@ export const RestoreEntryRequest: MessageFns<RestoreEntryRequest> = {
     }
     if (message.entryId !== "") {
       writer.uint32(18).string(message.entryId);
+    }
+    if (message.encryptedChange !== undefined) {
+      EncryptedChange.encode(message.encryptedChange, writer.uint32(26).fork()).join();
     }
     return writer;
   },
@@ -683,6 +701,14 @@ export const RestoreEntryRequest: MessageFns<RestoreEntryRequest> = {
             message.entryId = reader.string();
             continue;
           }
+          case 3: {
+            if (tag !== 26) {
+              break;
+            }
+
+            message.encryptedChange = EncryptedChange.decode(reader, reader.uint32());
+            continue;
+          }
         }
         if ((tag & 7) === 4 || tag === 0) {
           break;
@@ -697,13 +723,16 @@ export const RestoreEntryRequest: MessageFns<RestoreEntryRequest> = {
 };
 
 function createBaseRestoreEntryResponse(): RestoreEntryResponse {
-  return { entry: undefined };
+  return { errorCode: 0, entry: undefined };
 }
 
 export const RestoreEntryResponse: MessageFns<RestoreEntryResponse> = {
   encode(message: RestoreEntryResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.errorCode !== 0) {
+      writer.uint32(8).int32(message.errorCode);
+    }
     if (message.entry !== undefined) {
-      EncryptedEntry.encode(message.entry, writer.uint32(10).fork()).join();
+      EncryptedEntry.encode(message.entry, writer.uint32(18).fork()).join();
     }
     return writer;
   },
@@ -722,7 +751,15 @@ export const RestoreEntryResponse: MessageFns<RestoreEntryResponse> = {
         const tag = reader.uint32();
         switch (tag >>> 3) {
           case 1: {
-            if (tag !== 10) {
+            if (tag !== 8) {
+              break;
+            }
+
+            message.errorCode = reader.int32() as any;
+            continue;
+          }
+          case 2: {
+            if (tag !== 18) {
               break;
             }
 
@@ -743,7 +780,7 @@ export const RestoreEntryResponse: MessageFns<RestoreEntryResponse> = {
 };
 
 function createBaseEntryChanged(): EntryChanged {
-  return { eventId: "", occurredAt: undefined, entry: undefined };
+  return { eventId: "", occurredAt: undefined, diaryId: "", entryId: "" };
 }
 
 export const EntryChanged: MessageFns<EntryChanged> = {
@@ -754,8 +791,11 @@ export const EntryChanged: MessageFns<EntryChanged> = {
     if (message.occurredAt !== undefined) {
       Timestamp.encode(message.occurredAt, writer.uint32(18).fork()).join();
     }
-    if (message.entry !== undefined) {
-      EncryptedEntry.encode(message.entry, writer.uint32(26).fork()).join();
+    if (message.diaryId !== "") {
+      writer.uint32(26).string(message.diaryId);
+    }
+    if (message.entryId !== "") {
+      writer.uint32(34).string(message.entryId);
     }
     return writer;
   },
@@ -794,7 +834,15 @@ export const EntryChanged: MessageFns<EntryChanged> = {
               break;
             }
 
-            message.entry = EncryptedEntry.decode(reader, reader.uint32());
+            message.diaryId = reader.string();
+            continue;
+          }
+          case 4: {
+            if (tag !== 34) {
+              break;
+            }
+
+            message.entryId = reader.string();
             continue;
           }
         }
@@ -811,7 +859,7 @@ export const EntryChanged: MessageFns<EntryChanged> = {
 };
 
 function createBaseEntryDeleted(): EntryDeleted {
-  return { eventId: "", occurredAt: undefined, entry: undefined };
+  return { eventId: "", occurredAt: undefined, diaryId: "", entryId: "" };
 }
 
 export const EntryDeleted: MessageFns<EntryDeleted> = {
@@ -822,8 +870,11 @@ export const EntryDeleted: MessageFns<EntryDeleted> = {
     if (message.occurredAt !== undefined) {
       Timestamp.encode(message.occurredAt, writer.uint32(18).fork()).join();
     }
-    if (message.entry !== undefined) {
-      EncryptedEntry.encode(message.entry, writer.uint32(26).fork()).join();
+    if (message.diaryId !== "") {
+      writer.uint32(26).string(message.diaryId);
+    }
+    if (message.entryId !== "") {
+      writer.uint32(34).string(message.entryId);
     }
     return writer;
   },
@@ -862,7 +913,15 @@ export const EntryDeleted: MessageFns<EntryDeleted> = {
               break;
             }
 
-            message.entry = EncryptedEntry.decode(reader, reader.uint32());
+            message.diaryId = reader.string();
+            continue;
+          }
+          case 4: {
+            if (tag !== 34) {
+              break;
+            }
+
+            message.entryId = reader.string();
             continue;
           }
         }
@@ -879,7 +938,7 @@ export const EntryDeleted: MessageFns<EntryDeleted> = {
 };
 
 function createBaseEntryRestored(): EntryRestored {
-  return { eventId: "", occurredAt: undefined, entry: undefined };
+  return { eventId: "", occurredAt: undefined, diaryId: "", entryId: "" };
 }
 
 export const EntryRestored: MessageFns<EntryRestored> = {
@@ -890,8 +949,11 @@ export const EntryRestored: MessageFns<EntryRestored> = {
     if (message.occurredAt !== undefined) {
       Timestamp.encode(message.occurredAt, writer.uint32(18).fork()).join();
     }
-    if (message.entry !== undefined) {
-      EncryptedEntry.encode(message.entry, writer.uint32(26).fork()).join();
+    if (message.diaryId !== "") {
+      writer.uint32(26).string(message.diaryId);
+    }
+    if (message.entryId !== "") {
+      writer.uint32(34).string(message.entryId);
     }
     return writer;
   },
@@ -930,7 +992,15 @@ export const EntryRestored: MessageFns<EntryRestored> = {
               break;
             }
 
-            message.entry = EncryptedEntry.decode(reader, reader.uint32());
+            message.diaryId = reader.string();
+            continue;
+          }
+          case 4: {
+            if (tag !== 34) {
+              break;
+            }
+
+            message.entryId = reader.string();
             continue;
           }
         }

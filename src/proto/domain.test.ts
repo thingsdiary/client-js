@@ -34,7 +34,14 @@ describe("domain payload wire format", () => {
   });
 });
 
-it.each([EncryptedEntry, EncryptedTopic, EncryptedTemplate])(
+it("preserves absent and present encrypted entry timestamps", () => {
+  // Field 5 is absent and field 6 contains a Timestamp of one second.
+  const decoded = EncryptedEntry.decode(Uint8Array.of(0x32, 0x02, 0x08, 0x01));
+  expect(decoded.deletedAt).toBeUndefined();
+  expect(decoded.removedAt).toEqual({ seconds: 1n, nanos: 0 });
+});
+
+it.each([EncryptedTopic, EncryptedTemplate])(
   "preserves absent and present encrypted resource timestamps",
   ({ decode }) => {
     // Field 6 is absent and field 7 contains a Timestamp of one second.
