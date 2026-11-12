@@ -35,7 +35,6 @@ describe("Topics API", () => {
     expect(topic.default_template_id).toBeFalsy();
     expect(topic.created_at).toBeInstanceOf(Date);
     expect(topic.updated_at).toBeInstanceOf(Date);
-    expect(topic.version).toBeGreaterThan(0);
   });
 
   it("should list all topics", async () => {
@@ -93,7 +92,6 @@ describe("Topics API", () => {
     expect(updated.title).toBe("Topic After Update");
     expect(updated.description).toBe("Updated description");
     expect(updated.color).toBe("#BBBBBB");
-    expect(updated.version).toBeGreaterThan(topic.version);
   });
 
   it("should soft-delete and restore a topic", async () => {
@@ -140,18 +138,18 @@ describe("Topics API", () => {
     // Delete topic without options (default behavior)
     await client.topics.delete(diaryId, topic.id);
 
-    // Verify entries still exist but have no topic_id
+    // Topic deletion cannot rewrite encrypted entry metadata without entry changes.
     const fetchedEntry1 = await client.entries.get(diaryId, entry1.id);
     expect(fetchedEntry1).toBeDefined();
-    expect(fetchedEntry1.topic_id).toBeFalsy();
+    expect(fetchedEntry1.topic_id).toBe(topic.id);
 
     const fetchedEntry2 = await client.entries.get(diaryId, entry2.id);
     expect(fetchedEntry2).toBeDefined();
-    expect(fetchedEntry2.topic_id).toBeFalsy();
+    expect(fetchedEntry2.topic_id).toBe(topic.id);
 
     const fetchedEntry3 = await client.entries.get(diaryId, entry3.id);
     expect(fetchedEntry3).toBeDefined();
-    expect(fetchedEntry3.topic_id).toBeFalsy();
+    expect(fetchedEntry3.topic_id).toBe(topic.id);
   });
 
   it("should delete topic without deleting entries (explicit false)", async () => {
@@ -175,17 +173,17 @@ describe("Topics API", () => {
     // Delete topic with deleteEntries explicitly set to false
     await client.topics.delete(diaryId, topic.id, { deleteEntries: false });
 
-    // Verify entries still exist but have no topic_id
+    // Entry metadata remains unchanged without encrypted entry changes.
     const fetchedEntry1 = await client.entries.get(diaryId, entry1.id);
     expect(fetchedEntry1).toBeDefined();
-    expect(fetchedEntry1.topic_id).toBeFalsy();
+    expect(fetchedEntry1.topic_id).toBe(topic.id);
 
     const fetchedEntry2 = await client.entries.get(diaryId, entry2.id);
     expect(fetchedEntry2).toBeDefined();
-    expect(fetchedEntry2.topic_id).toBeFalsy();
+    expect(fetchedEntry2.topic_id).toBe(topic.id);
   });
 
-  it("should delete topic with entries", async () => {
+  it("should reject cascading entry deletion without encrypted entry changes", async () => {
     const topic = await client.topics.create(diaryId, {
       title: "Topic with Entries (Delete All)",
       description: "Has entries that should be deleted",
@@ -208,30 +206,13 @@ describe("Topics API", () => {
       topic_id: topic.id,
     });
 
-    // Delete topic with all entries
-    await client.topics.delete(diaryId, topic.id, { deleteEntries: true });
+    await expect(
+      client.topics.delete(diaryId, topic.id, { deleteEntries: true }),
+    ).rejects.toThrow("deleting topic entries requires encrypted entry changes");
 
-    // Verify entries are deleted
-    try {
-      await client.entries.get(diaryId, entry1.id);
-      expect.fail("Entry 1 should have been deleted");
-    } catch (error) {
-      expect(error).toBeDefined();
-    }
-
-    try {
-      await client.entries.get(diaryId, entry2.id);
-      expect.fail("Entry 2 should have been deleted");
-    } catch (error) {
-      expect(error).toBeDefined();
-    }
-
-    try {
-      await client.entries.get(diaryId, entry3.id);
-      expect.fail("Entry 3 should have been deleted");
-    } catch (error) {
-      expect(error).toBeDefined();
-    }
+    expect((await client.entries.get(diaryId, entry1.id)).topic_id).toBe(topic.id);
+    expect((await client.entries.get(diaryId, entry2.id)).topic_id).toBe(topic.id);
+    expect((await client.entries.get(diaryId, entry3.id)).topic_id).toBe(topic.id);
   });
 
   it("should encrypt and decrypt topic data correctly", async () => {

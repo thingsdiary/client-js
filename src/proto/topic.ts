@@ -6,14 +6,15 @@
 
 /* eslint-disable */
 import { BinaryReader, BinaryWriter } from "@bufbuild/protobuf/wire";
+import { EncryptedChange } from "./change.js";
 import { EncryptedTopic } from "./encrypted_topic.js";
-import { EncryptedData, Encryption } from "./encryption.js";
+import { ErrorCode } from "./errors.js";
 import { Timestamp } from "./google/protobuf/timestamp.js";
 import { Page, PageInfo } from "./pagination.js";
 
 export const protobufPackage = "io.thingsdiary.v1";
 
-/** Plaintext serialized before encrypting EncryptedTopic.details. */
+/** Plaintext serialized before encrypting a topic change payload. */
 export interface TopicDetails {
   title: string;
   description: string;
@@ -44,13 +45,12 @@ export interface ListTopicsResponse {
 export interface PutTopicRequest {
   diaryId: string;
   topicId: string;
-  version: bigint;
-  encryption: Encryption | undefined;
-  details: EncryptedData | undefined;
   defaultTemplateId?: string | undefined;
+  encryptedChange: EncryptedChange | undefined;
 }
 
 export interface PutTopicResponse {
+  errorCode: ErrorCode;
   topic: EncryptedTopic | undefined;
 }
 
@@ -59,36 +59,43 @@ export interface DeleteTopicRequest {
   topicId: string;
   soft?: boolean | undefined;
   deleteEntries: boolean;
+  encryptedChange: EncryptedChange | undefined;
 }
 
 export interface DeleteTopicResponse {
+  errorCode: ErrorCode;
 }
 
 export interface RestoreTopicRequest {
   diaryId: string;
   topicId: string;
+  encryptedChange: EncryptedChange | undefined;
 }
 
 export interface RestoreTopicResponse {
+  errorCode: ErrorCode;
   topic: EncryptedTopic | undefined;
 }
 
 export interface TopicChanged {
   eventId: string;
   occurredAt: Timestamp | undefined;
-  topic: EncryptedTopic | undefined;
+  diaryId: string;
+  topicId: string;
 }
 
 export interface TopicDeleted {
   eventId: string;
   occurredAt: Timestamp | undefined;
-  topic: EncryptedTopic | undefined;
+  diaryId: string;
+  topicId: string;
 }
 
 export interface TopicRestored {
   eventId: string;
   occurredAt: Timestamp | undefined;
-  topic: EncryptedTopic | undefined;
+  diaryId: string;
+  topicId: string;
 }
 
 function createBaseTopicDetails(): TopicDetails {
@@ -388,14 +395,7 @@ export const ListTopicsResponse: MessageFns<ListTopicsResponse> = {
 };
 
 function createBasePutTopicRequest(): PutTopicRequest {
-  return {
-    diaryId: "",
-    topicId: "",
-    version: 0n,
-    encryption: undefined,
-    details: undefined,
-    defaultTemplateId: undefined,
-  };
+  return { diaryId: "", topicId: "", defaultTemplateId: undefined, encryptedChange: undefined };
 }
 
 export const PutTopicRequest: MessageFns<PutTopicRequest> = {
@@ -406,20 +406,11 @@ export const PutTopicRequest: MessageFns<PutTopicRequest> = {
     if (message.topicId !== "") {
       writer.uint32(18).string(message.topicId);
     }
-    if (message.version !== 0n) {
-      if (BigInt.asUintN(64, message.version) !== message.version) {
-        throw new globalThis.Error("value provided for field message.version of type uint64 too large");
-      }
-      writer.uint32(24).uint64(message.version);
-    }
-    if (message.encryption !== undefined) {
-      Encryption.encode(message.encryption, writer.uint32(34).fork()).join();
-    }
-    if (message.details !== undefined) {
-      EncryptedData.encode(message.details, writer.uint32(42).fork()).join();
-    }
     if (message.defaultTemplateId !== undefined) {
-      writer.uint32(50).string(message.defaultTemplateId);
+      writer.uint32(26).string(message.defaultTemplateId);
+    }
+    if (message.encryptedChange !== undefined) {
+      EncryptedChange.encode(message.encryptedChange, writer.uint32(34).fork()).join();
     }
     return writer;
   },
@@ -454,11 +445,11 @@ export const PutTopicRequest: MessageFns<PutTopicRequest> = {
             continue;
           }
           case 3: {
-            if (tag !== 24) {
+            if (tag !== 26) {
               break;
             }
 
-            message.version = reader.uint64() as bigint;
+            message.defaultTemplateId = reader.string();
             continue;
           }
           case 4: {
@@ -466,23 +457,7 @@ export const PutTopicRequest: MessageFns<PutTopicRequest> = {
               break;
             }
 
-            message.encryption = Encryption.decode(reader, reader.uint32());
-            continue;
-          }
-          case 5: {
-            if (tag !== 42) {
-              break;
-            }
-
-            message.details = EncryptedData.decode(reader, reader.uint32());
-            continue;
-          }
-          case 6: {
-            if (tag !== 50) {
-              break;
-            }
-
-            message.defaultTemplateId = reader.string();
+            message.encryptedChange = EncryptedChange.decode(reader, reader.uint32());
             continue;
           }
         }
@@ -499,13 +474,16 @@ export const PutTopicRequest: MessageFns<PutTopicRequest> = {
 };
 
 function createBasePutTopicResponse(): PutTopicResponse {
-  return { topic: undefined };
+  return { errorCode: 0, topic: undefined };
 }
 
 export const PutTopicResponse: MessageFns<PutTopicResponse> = {
   encode(message: PutTopicResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.errorCode !== 0) {
+      writer.uint32(8).int32(message.errorCode);
+    }
     if (message.topic !== undefined) {
-      EncryptedTopic.encode(message.topic, writer.uint32(10).fork()).join();
+      EncryptedTopic.encode(message.topic, writer.uint32(18).fork()).join();
     }
     return writer;
   },
@@ -524,7 +502,15 @@ export const PutTopicResponse: MessageFns<PutTopicResponse> = {
         const tag = reader.uint32();
         switch (tag >>> 3) {
           case 1: {
-            if (tag !== 10) {
+            if (tag !== 8) {
+              break;
+            }
+
+            message.errorCode = reader.int32() as any;
+            continue;
+          }
+          case 2: {
+            if (tag !== 18) {
               break;
             }
 
@@ -545,7 +531,7 @@ export const PutTopicResponse: MessageFns<PutTopicResponse> = {
 };
 
 function createBaseDeleteTopicRequest(): DeleteTopicRequest {
-  return { diaryId: "", topicId: "", soft: undefined, deleteEntries: false };
+  return { diaryId: "", topicId: "", soft: undefined, deleteEntries: false, encryptedChange: undefined };
 }
 
 export const DeleteTopicRequest: MessageFns<DeleteTopicRequest> = {
@@ -561,6 +547,9 @@ export const DeleteTopicRequest: MessageFns<DeleteTopicRequest> = {
     }
     if (message.deleteEntries !== false) {
       writer.uint32(32).bool(message.deleteEntries);
+    }
+    if (message.encryptedChange !== undefined) {
+      EncryptedChange.encode(message.encryptedChange, writer.uint32(42).fork()).join();
     }
     return writer;
   },
@@ -610,6 +599,14 @@ export const DeleteTopicRequest: MessageFns<DeleteTopicRequest> = {
             message.deleteEntries = reader.bool();
             continue;
           }
+          case 5: {
+            if (tag !== 42) {
+              break;
+            }
+
+            message.encryptedChange = EncryptedChange.decode(reader, reader.uint32());
+            continue;
+          }
         }
         if ((tag & 7) === 4 || tag === 0) {
           break;
@@ -624,11 +621,14 @@ export const DeleteTopicRequest: MessageFns<DeleteTopicRequest> = {
 };
 
 function createBaseDeleteTopicResponse(): DeleteTopicResponse {
-  return {};
+  return { errorCode: 0 };
 }
 
 export const DeleteTopicResponse: MessageFns<DeleteTopicResponse> = {
-  encode(_: DeleteTopicResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(message: DeleteTopicResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.errorCode !== 0) {
+      writer.uint32(8).int32(message.errorCode);
+    }
     return writer;
   },
 
@@ -645,6 +645,14 @@ export const DeleteTopicResponse: MessageFns<DeleteTopicResponse> = {
       while (reader.pos < end) {
         const tag = reader.uint32();
         switch (tag >>> 3) {
+          case 1: {
+            if (tag !== 8) {
+              break;
+            }
+
+            message.errorCode = reader.int32() as any;
+            continue;
+          }
         }
         if ((tag & 7) === 4 || tag === 0) {
           break;
@@ -659,7 +667,7 @@ export const DeleteTopicResponse: MessageFns<DeleteTopicResponse> = {
 };
 
 function createBaseRestoreTopicRequest(): RestoreTopicRequest {
-  return { diaryId: "", topicId: "" };
+  return { diaryId: "", topicId: "", encryptedChange: undefined };
 }
 
 export const RestoreTopicRequest: MessageFns<RestoreTopicRequest> = {
@@ -669,6 +677,9 @@ export const RestoreTopicRequest: MessageFns<RestoreTopicRequest> = {
     }
     if (message.topicId !== "") {
       writer.uint32(18).string(message.topicId);
+    }
+    if (message.encryptedChange !== undefined) {
+      EncryptedChange.encode(message.encryptedChange, writer.uint32(26).fork()).join();
     }
     return writer;
   },
@@ -702,6 +713,14 @@ export const RestoreTopicRequest: MessageFns<RestoreTopicRequest> = {
             message.topicId = reader.string();
             continue;
           }
+          case 3: {
+            if (tag !== 26) {
+              break;
+            }
+
+            message.encryptedChange = EncryptedChange.decode(reader, reader.uint32());
+            continue;
+          }
         }
         if ((tag & 7) === 4 || tag === 0) {
           break;
@@ -716,13 +735,16 @@ export const RestoreTopicRequest: MessageFns<RestoreTopicRequest> = {
 };
 
 function createBaseRestoreTopicResponse(): RestoreTopicResponse {
-  return { topic: undefined };
+  return { errorCode: 0, topic: undefined };
 }
 
 export const RestoreTopicResponse: MessageFns<RestoreTopicResponse> = {
   encode(message: RestoreTopicResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.errorCode !== 0) {
+      writer.uint32(8).int32(message.errorCode);
+    }
     if (message.topic !== undefined) {
-      EncryptedTopic.encode(message.topic, writer.uint32(10).fork()).join();
+      EncryptedTopic.encode(message.topic, writer.uint32(18).fork()).join();
     }
     return writer;
   },
@@ -741,7 +763,15 @@ export const RestoreTopicResponse: MessageFns<RestoreTopicResponse> = {
         const tag = reader.uint32();
         switch (tag >>> 3) {
           case 1: {
-            if (tag !== 10) {
+            if (tag !== 8) {
+              break;
+            }
+
+            message.errorCode = reader.int32() as any;
+            continue;
+          }
+          case 2: {
+            if (tag !== 18) {
               break;
             }
 
@@ -762,7 +792,7 @@ export const RestoreTopicResponse: MessageFns<RestoreTopicResponse> = {
 };
 
 function createBaseTopicChanged(): TopicChanged {
-  return { eventId: "", occurredAt: undefined, topic: undefined };
+  return { eventId: "", occurredAt: undefined, diaryId: "", topicId: "" };
 }
 
 export const TopicChanged: MessageFns<TopicChanged> = {
@@ -773,8 +803,11 @@ export const TopicChanged: MessageFns<TopicChanged> = {
     if (message.occurredAt !== undefined) {
       Timestamp.encode(message.occurredAt, writer.uint32(18).fork()).join();
     }
-    if (message.topic !== undefined) {
-      EncryptedTopic.encode(message.topic, writer.uint32(26).fork()).join();
+    if (message.diaryId !== "") {
+      writer.uint32(26).string(message.diaryId);
+    }
+    if (message.topicId !== "") {
+      writer.uint32(34).string(message.topicId);
     }
     return writer;
   },
@@ -813,7 +846,15 @@ export const TopicChanged: MessageFns<TopicChanged> = {
               break;
             }
 
-            message.topic = EncryptedTopic.decode(reader, reader.uint32());
+            message.diaryId = reader.string();
+            continue;
+          }
+          case 4: {
+            if (tag !== 34) {
+              break;
+            }
+
+            message.topicId = reader.string();
             continue;
           }
         }
@@ -830,7 +871,7 @@ export const TopicChanged: MessageFns<TopicChanged> = {
 };
 
 function createBaseTopicDeleted(): TopicDeleted {
-  return { eventId: "", occurredAt: undefined, topic: undefined };
+  return { eventId: "", occurredAt: undefined, diaryId: "", topicId: "" };
 }
 
 export const TopicDeleted: MessageFns<TopicDeleted> = {
@@ -841,8 +882,11 @@ export const TopicDeleted: MessageFns<TopicDeleted> = {
     if (message.occurredAt !== undefined) {
       Timestamp.encode(message.occurredAt, writer.uint32(18).fork()).join();
     }
-    if (message.topic !== undefined) {
-      EncryptedTopic.encode(message.topic, writer.uint32(26).fork()).join();
+    if (message.diaryId !== "") {
+      writer.uint32(26).string(message.diaryId);
+    }
+    if (message.topicId !== "") {
+      writer.uint32(34).string(message.topicId);
     }
     return writer;
   },
@@ -881,7 +925,15 @@ export const TopicDeleted: MessageFns<TopicDeleted> = {
               break;
             }
 
-            message.topic = EncryptedTopic.decode(reader, reader.uint32());
+            message.diaryId = reader.string();
+            continue;
+          }
+          case 4: {
+            if (tag !== 34) {
+              break;
+            }
+
+            message.topicId = reader.string();
             continue;
           }
         }
@@ -898,7 +950,7 @@ export const TopicDeleted: MessageFns<TopicDeleted> = {
 };
 
 function createBaseTopicRestored(): TopicRestored {
-  return { eventId: "", occurredAt: undefined, topic: undefined };
+  return { eventId: "", occurredAt: undefined, diaryId: "", topicId: "" };
 }
 
 export const TopicRestored: MessageFns<TopicRestored> = {
@@ -909,8 +961,11 @@ export const TopicRestored: MessageFns<TopicRestored> = {
     if (message.occurredAt !== undefined) {
       Timestamp.encode(message.occurredAt, writer.uint32(18).fork()).join();
     }
-    if (message.topic !== undefined) {
-      EncryptedTopic.encode(message.topic, writer.uint32(26).fork()).join();
+    if (message.diaryId !== "") {
+      writer.uint32(26).string(message.diaryId);
+    }
+    if (message.topicId !== "") {
+      writer.uint32(34).string(message.topicId);
     }
     return writer;
   },
@@ -949,7 +1004,15 @@ export const TopicRestored: MessageFns<TopicRestored> = {
               break;
             }
 
-            message.topic = EncryptedTopic.decode(reader, reader.uint32());
+            message.diaryId = reader.string();
+            continue;
+          }
+          case 4: {
+            if (tag !== 34) {
+              break;
+            }
+
+            message.topicId = reader.string();
             continue;
           }
         }

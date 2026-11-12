@@ -32,7 +32,6 @@ export interface Topic {
   updated_at: Date;
   deleted_at?: Date;
   removed_at?: Date;
-  version: number;
 }
 
 export interface Template {
