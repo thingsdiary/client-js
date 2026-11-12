@@ -6,6 +6,7 @@
 
 /* eslint-disable */
 import { BinaryReader, BinaryWriter } from "@bufbuild/protobuf/wire";
+import { Encryption } from "./encryption.js";
 
 export const protobufPackage = "io.thingsdiary.v1";
 
@@ -16,6 +17,11 @@ export interface Change {
   /** Empty only for a root change. Parents must belong to the same object. */
   parentChangeIds: string[];
   payload: Uint8Array;
+}
+
+export interface EncryptedChange {
+  change: Change | undefined;
+  encryption: Encryption | undefined;
 }
 
 function createBaseChange(): Change {
@@ -82,6 +88,63 @@ export const Change: MessageFns<Change> = {
             }
 
             message.payload = reader.bytes();
+            continue;
+          }
+        }
+        if ((tag & 7) === 4 || tag === 0) {
+          break;
+        }
+        reader.skip(tag & 7);
+      }
+      return message;
+    } finally {
+      (reader as any).__tsProtoDecodeDepth = previousRecursionDepth;
+    }
+  },
+};
+
+function createBaseEncryptedChange(): EncryptedChange {
+  return { change: undefined, encryption: undefined };
+}
+
+export const EncryptedChange: MessageFns<EncryptedChange> = {
+  encode(message: EncryptedChange, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.change !== undefined) {
+      Change.encode(message.change, writer.uint32(10).fork()).join();
+    }
+    if (message.encryption !== undefined) {
+      Encryption.encode(message.encryption, writer.uint32(18).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): EncryptedChange {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const previousRecursionDepth = (reader as any).__tsProtoDecodeDepth ?? 0;
+    if (previousRecursionDepth >= 100) {
+      throw new globalThis.Error("protobuf decode recursion limit exceeded");
+    }
+    (reader as any).__tsProtoDecodeDepth = previousRecursionDepth + 1;
+    try {
+      const end = length === undefined ? reader.len : reader.pos + length;
+      const message = createBaseEncryptedChange();
+      while (reader.pos < end) {
+        const tag = reader.uint32();
+        switch (tag >>> 3) {
+          case 1: {
+            if (tag !== 10) {
+              break;
+            }
+
+            message.change = Change.decode(reader, reader.uint32());
+            continue;
+          }
+          case 2: {
+            if (tag !== 18) {
+              break;
+            }
+
+            message.encryption = Encryption.decode(reader, reader.uint32());
             continue;
           }
         }

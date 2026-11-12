@@ -1,15 +1,16 @@
 import type { EncryptedDiary as ProtoDiary } from "@/proto/encrypted_diary";
 import { Credentials } from "@/crypto/credentials";
 import {
+  decryptWithSymmetricKey,
   decryptWithPrivateKey,
   encryptWithPublicKey,
   generateSymmetricKey,
 } from "@/crypto/encryption";
 import { RealtimeClient } from "@/realtime";
 import { KeysAPI } from "@/resources/keys";
-import { decryptDetails, encryptDetails } from "@/resources/details";
+import { encryptDetails } from "@/resources/details";
 import { timestampToDate } from "@/utils/protobuf/timestamp";
-import { NewVersion, Version } from "@/resources/version";
+import type { Version } from "@/resources/version";
 import type { Diary } from "@/types";
 import {
   DiaryDetails,
@@ -24,6 +25,7 @@ import {
   PutDiaryRequest,
   PutDiaryResponse,
 } from "@/proto/diary";
+import { EncryptedData } from "@/proto/encryption";
 
 export interface CreateDiaryParams {
   title: string;
@@ -32,6 +34,7 @@ export interface CreateDiaryParams {
 
 export interface PutDiaryParams extends CreateDiaryParams {
   version?: Version;
+  parentChangeIds?: string[];
 }
 
 export class DiariesAPI {
@@ -46,25 +49,26 @@ export class DiariesAPI {
     const entity = encryptDetails(params, diaryKey, "", DiaryDetails);
     const encryptedDiaryKey = encryptWithPublicKey(diaryKey, this.credentials.encryptionPublicKey);
 
+    const payload = EncryptedData.encode(entity.details).finish();
     const response = await this.rpc.rpc(
       "io.thingsdiary.v1.diary.create",
       {
         encryptedDiaryKey,
-        encryptedKeyNonce: entity.encryption.encryptedKeyNonce,
-        encryptedKeyData: entity.encryption.encryptedKeyData,
-        details: entity.details,
-        change: undefined,
+        encryptedChange: {
+          change: { id: crypto.randomUUID(), objectId: "", parentChangeIds: [], payload },
+          encryption: entity.encryption,
+        },
       },
       CreateDiaryRequest,
       CreateDiaryResponse,
     );
 
-    if (!response.diary) throw new Error("diary is missing from response");
-
-    return this.decrypt(response.diary);
+    return this.decrypt(await this.fetch(response.diaryId));
   }
 
   async put(diaryId: string, params: PutDiaryParams): Promise<Diary> {
+    const current = await this.fetch(diaryId);
+    if (!current.change?.change) throw new Error("diary change is missing");
     const key = await this.keys.getActive(diaryId);
     const encrypted = encryptDetails(
       { title: params.title, description: params.description },
@@ -73,22 +77,26 @@ export class DiariesAPI {
       DiaryDetails,
     );
 
-    const response = await this.rpc.rpc(
+    const payload = EncryptedData.encode(encrypted.details).finish();
+    await this.rpc.rpc(
       "io.thingsdiary.v1.diary.put",
       {
         diaryId,
-        version: BigInt(params.version ?? NewVersion()),
-        encryption: encrypted.encryption,
-        details: encrypted.details,
-        change: undefined,
+        encryptedChange: {
+          change: {
+            id: crypto.randomUUID(),
+            objectId: diaryId,
+            parentChangeIds: params.parentChangeIds ?? [current.change.change.id],
+            payload,
+          },
+          encryption: encrypted.encryption,
+        },
       },
       PutDiaryRequest,
       PutDiaryResponse,
     );
 
-    if (!response.diary) throw new Error("diary is missing from response");
-
-    return this.decrypt(response.diary);
+    return this.decrypt(await this.fetch(diaryId));
   }
 
   async delete(diaryId: string): Promise<void> {
@@ -112,6 +120,10 @@ export class DiariesAPI {
   }
 
   async get(diaryId: string): Promise<Diary> {
+    return this.decrypt(await this.fetch(diaryId));
+  }
+
+  private async fetch(diaryId: string): Promise<ProtoDiary> {
     const response = await this.rpc.rpc(
       "io.thingsdiary.v1.diary.get",
       { diaryId },
@@ -119,9 +131,9 @@ export class DiariesAPI {
       GetDiaryResponse,
     );
 
-    if (!response!.diary) throw new Error("diary is missing from response");
+    if (!response?.diary) throw new Error("diary is missing from response");
 
-    return this.decrypt(response!.diary);
+    return response.diary;
   }
 
   private decrypt(value: ProtoDiary): Diary {
@@ -133,15 +145,27 @@ export class DiariesAPI {
       this.credentials.encryptionPublicKey,
     );
 
-    const details = decryptDetails(value, diaryKey, DiaryDetails);
+    const change = value.change;
+    if (!change?.change || !change.encryption) throw new Error("diary change is missing");
+
+    const encryptedData = EncryptedData.decode(change.change.payload);
+    const entityKey = decryptWithSymmetricKey(
+      change.encryption.encryptedKeyNonce,
+      change.encryption.encryptedKeyData,
+      diaryKey,
+    );
+    const details = DiaryDetails.decode(
+      decryptWithSymmetricKey(encryptedData.nonce, encryptedData.data, entityKey),
+    );
+    const updatedAt = timestampToDate(value.updatedAt);
 
     return {
       id: value.id,
       title: details.title,
       description: details.description,
       created_at: timestampToDate(value.createdAt),
-      updated_at: timestampToDate(value.updatedAt),
-      version: Number(value.version),
+      updated_at: updatedAt,
+      version: updatedAt.getTime(),
     };
   }
 }

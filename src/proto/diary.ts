@@ -6,15 +6,14 @@
 
 /* eslint-disable */
 import { BinaryReader, BinaryWriter } from "@bufbuild/protobuf/wire";
-import { Change } from "./change.js";
+import { EncryptedChange } from "./change.js";
 import { EncryptedDiary } from "./encrypted_diary.js";
-import { EncryptedData, Encryption } from "./encryption.js";
 import { Timestamp } from "./google/protobuf/timestamp.js";
 import { Page, PageInfo } from "./pagination.js";
 
 export const protobufPackage = "io.thingsdiary.v1";
 
-/** Plaintext serialized before encrypting EncryptedDiary.details. */
+/** Plaintext serialized before encrypting a diary change payload. */
 export interface DiaryDetails {
   title: string;
   description: string;
@@ -23,21 +22,17 @@ export interface DiaryDetails {
 /** Centrifugo methods: io.thingsdiary.v1.diary.{create,get,list,put,delete}. */
 export interface CreateDiaryRequest {
   encryptedDiaryKey: Uint8Array;
-  encryptedKeyNonce: Uint8Array;
-  encryptedKeyData: Uint8Array;
-  /** @deprecated */
-  details: EncryptedData | undefined;
-  change: Change | undefined;
+  encryptedChange: EncryptedChange | undefined;
 }
 
 export interface CreateDiaryResponse {
-  diary: EncryptedDiary | undefined;
+  diaryId: string;
 }
 
 export interface DiaryCreated {
   eventId: string;
   occurredAt: Timestamp | undefined;
-  diary: EncryptedDiary | undefined;
+  diaryId: string;
 }
 
 export interface GetDiaryRequest {
@@ -59,23 +54,16 @@ export interface ListDiariesResponse {
 
 export interface PutDiaryRequest {
   diaryId: string;
-  version: bigint;
-  encryption:
-    | Encryption
-    | undefined;
-  /** @deprecated */
-  details: EncryptedData | undefined;
-  change: Change | undefined;
+  encryptedChange: EncryptedChange | undefined;
 }
 
 export interface PutDiaryResponse {
-  diary: EncryptedDiary | undefined;
 }
 
 export interface DiaryChanged {
   eventId: string;
   occurredAt: Timestamp | undefined;
-  diary: EncryptedDiary | undefined;
+  diaryId: string;
 }
 
 export interface DeleteDiaryRequest {
@@ -89,8 +77,6 @@ export interface DiaryDeleted {
   eventId: string;
   occurredAt: Timestamp | undefined;
   diaryId: string;
-  version: bigint;
-  deletedAt?: Timestamp | undefined;
 }
 
 function createBaseDiaryDetails(): DiaryDetails {
@@ -151,13 +137,7 @@ export const DiaryDetails: MessageFns<DiaryDetails> = {
 };
 
 function createBaseCreateDiaryRequest(): CreateDiaryRequest {
-  return {
-    encryptedDiaryKey: new Uint8Array(0),
-    encryptedKeyNonce: new Uint8Array(0),
-    encryptedKeyData: new Uint8Array(0),
-    details: undefined,
-    change: undefined,
-  };
+  return { encryptedDiaryKey: new Uint8Array(0), encryptedChange: undefined };
 }
 
 export const CreateDiaryRequest: MessageFns<CreateDiaryRequest> = {
@@ -165,17 +145,8 @@ export const CreateDiaryRequest: MessageFns<CreateDiaryRequest> = {
     if (message.encryptedDiaryKey.length !== 0) {
       writer.uint32(10).bytes(message.encryptedDiaryKey);
     }
-    if (message.encryptedKeyNonce.length !== 0) {
-      writer.uint32(18).bytes(message.encryptedKeyNonce);
-    }
-    if (message.encryptedKeyData.length !== 0) {
-      writer.uint32(26).bytes(message.encryptedKeyData);
-    }
-    if (message.details !== undefined) {
-      EncryptedData.encode(message.details, writer.uint32(34).fork()).join();
-    }
-    if (message.change !== undefined) {
-      Change.encode(message.change, writer.uint32(42).fork()).join();
+    if (message.encryptedChange !== undefined) {
+      EncryptedChange.encode(message.encryptedChange, writer.uint32(18).fork()).join();
     }
     return writer;
   },
@@ -206,31 +177,7 @@ export const CreateDiaryRequest: MessageFns<CreateDiaryRequest> = {
               break;
             }
 
-            message.encryptedKeyNonce = reader.bytes();
-            continue;
-          }
-          case 3: {
-            if (tag !== 26) {
-              break;
-            }
-
-            message.encryptedKeyData = reader.bytes();
-            continue;
-          }
-          case 4: {
-            if (tag !== 34) {
-              break;
-            }
-
-            message.details = EncryptedData.decode(reader, reader.uint32());
-            continue;
-          }
-          case 5: {
-            if (tag !== 42) {
-              break;
-            }
-
-            message.change = Change.decode(reader, reader.uint32());
+            message.encryptedChange = EncryptedChange.decode(reader, reader.uint32());
             continue;
           }
         }
@@ -247,13 +194,13 @@ export const CreateDiaryRequest: MessageFns<CreateDiaryRequest> = {
 };
 
 function createBaseCreateDiaryResponse(): CreateDiaryResponse {
-  return { diary: undefined };
+  return { diaryId: "" };
 }
 
 export const CreateDiaryResponse: MessageFns<CreateDiaryResponse> = {
   encode(message: CreateDiaryResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.diary !== undefined) {
-      EncryptedDiary.encode(message.diary, writer.uint32(10).fork()).join();
+    if (message.diaryId !== "") {
+      writer.uint32(10).string(message.diaryId);
     }
     return writer;
   },
@@ -276,7 +223,7 @@ export const CreateDiaryResponse: MessageFns<CreateDiaryResponse> = {
               break;
             }
 
-            message.diary = EncryptedDiary.decode(reader, reader.uint32());
+            message.diaryId = reader.string();
             continue;
           }
         }
@@ -293,7 +240,7 @@ export const CreateDiaryResponse: MessageFns<CreateDiaryResponse> = {
 };
 
 function createBaseDiaryCreated(): DiaryCreated {
-  return { eventId: "", occurredAt: undefined, diary: undefined };
+  return { eventId: "", occurredAt: undefined, diaryId: "" };
 }
 
 export const DiaryCreated: MessageFns<DiaryCreated> = {
@@ -304,8 +251,8 @@ export const DiaryCreated: MessageFns<DiaryCreated> = {
     if (message.occurredAt !== undefined) {
       Timestamp.encode(message.occurredAt, writer.uint32(18).fork()).join();
     }
-    if (message.diary !== undefined) {
-      EncryptedDiary.encode(message.diary, writer.uint32(26).fork()).join();
+    if (message.diaryId !== "") {
+      writer.uint32(26).string(message.diaryId);
     }
     return writer;
   },
@@ -344,7 +291,7 @@ export const DiaryCreated: MessageFns<DiaryCreated> = {
               break;
             }
 
-            message.diary = EncryptedDiary.decode(reader, reader.uint32());
+            message.diaryId = reader.string();
             continue;
           }
         }
@@ -556,7 +503,7 @@ export const ListDiariesResponse: MessageFns<ListDiariesResponse> = {
 };
 
 function createBasePutDiaryRequest(): PutDiaryRequest {
-  return { diaryId: "", version: 0n, encryption: undefined, details: undefined, change: undefined };
+  return { diaryId: "", encryptedChange: undefined };
 }
 
 export const PutDiaryRequest: MessageFns<PutDiaryRequest> = {
@@ -564,20 +511,8 @@ export const PutDiaryRequest: MessageFns<PutDiaryRequest> = {
     if (message.diaryId !== "") {
       writer.uint32(10).string(message.diaryId);
     }
-    if (message.version !== 0n) {
-      if (BigInt.asUintN(64, message.version) !== message.version) {
-        throw new globalThis.Error("value provided for field message.version of type uint64 too large");
-      }
-      writer.uint32(16).uint64(message.version);
-    }
-    if (message.encryption !== undefined) {
-      Encryption.encode(message.encryption, writer.uint32(26).fork()).join();
-    }
-    if (message.details !== undefined) {
-      EncryptedData.encode(message.details, writer.uint32(34).fork()).join();
-    }
-    if (message.change !== undefined) {
-      Change.encode(message.change, writer.uint32(42).fork()).join();
+    if (message.encryptedChange !== undefined) {
+      EncryptedChange.encode(message.encryptedChange, writer.uint32(18).fork()).join();
     }
     return writer;
   },
@@ -604,35 +539,11 @@ export const PutDiaryRequest: MessageFns<PutDiaryRequest> = {
             continue;
           }
           case 2: {
-            if (tag !== 16) {
+            if (tag !== 18) {
               break;
             }
 
-            message.version = reader.uint64() as bigint;
-            continue;
-          }
-          case 3: {
-            if (tag !== 26) {
-              break;
-            }
-
-            message.encryption = Encryption.decode(reader, reader.uint32());
-            continue;
-          }
-          case 4: {
-            if (tag !== 34) {
-              break;
-            }
-
-            message.details = EncryptedData.decode(reader, reader.uint32());
-            continue;
-          }
-          case 5: {
-            if (tag !== 42) {
-              break;
-            }
-
-            message.change = Change.decode(reader, reader.uint32());
+            message.encryptedChange = EncryptedChange.decode(reader, reader.uint32());
             continue;
           }
         }
@@ -649,14 +560,11 @@ export const PutDiaryRequest: MessageFns<PutDiaryRequest> = {
 };
 
 function createBasePutDiaryResponse(): PutDiaryResponse {
-  return { diary: undefined };
+  return {};
 }
 
 export const PutDiaryResponse: MessageFns<PutDiaryResponse> = {
-  encode(message: PutDiaryResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.diary !== undefined) {
-      EncryptedDiary.encode(message.diary, writer.uint32(10).fork()).join();
-    }
+  encode(_: PutDiaryResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     return writer;
   },
 
@@ -673,14 +581,6 @@ export const PutDiaryResponse: MessageFns<PutDiaryResponse> = {
       while (reader.pos < end) {
         const tag = reader.uint32();
         switch (tag >>> 3) {
-          case 1: {
-            if (tag !== 10) {
-              break;
-            }
-
-            message.diary = EncryptedDiary.decode(reader, reader.uint32());
-            continue;
-          }
         }
         if ((tag & 7) === 4 || tag === 0) {
           break;
@@ -695,7 +595,7 @@ export const PutDiaryResponse: MessageFns<PutDiaryResponse> = {
 };
 
 function createBaseDiaryChanged(): DiaryChanged {
-  return { eventId: "", occurredAt: undefined, diary: undefined };
+  return { eventId: "", occurredAt: undefined, diaryId: "" };
 }
 
 export const DiaryChanged: MessageFns<DiaryChanged> = {
@@ -706,8 +606,8 @@ export const DiaryChanged: MessageFns<DiaryChanged> = {
     if (message.occurredAt !== undefined) {
       Timestamp.encode(message.occurredAt, writer.uint32(18).fork()).join();
     }
-    if (message.diary !== undefined) {
-      EncryptedDiary.encode(message.diary, writer.uint32(26).fork()).join();
+    if (message.diaryId !== "") {
+      writer.uint32(26).string(message.diaryId);
     }
     return writer;
   },
@@ -746,7 +646,7 @@ export const DiaryChanged: MessageFns<DiaryChanged> = {
               break;
             }
 
-            message.diary = EncryptedDiary.decode(reader, reader.uint32());
+            message.diaryId = reader.string();
             continue;
           }
         }
@@ -844,7 +744,7 @@ export const DeleteDiaryResponse: MessageFns<DeleteDiaryResponse> = {
 };
 
 function createBaseDiaryDeleted(): DiaryDeleted {
-  return { eventId: "", occurredAt: undefined, diaryId: "", version: 0n, deletedAt: undefined };
+  return { eventId: "", occurredAt: undefined, diaryId: "" };
 }
 
 export const DiaryDeleted: MessageFns<DiaryDeleted> = {
@@ -857,15 +757,6 @@ export const DiaryDeleted: MessageFns<DiaryDeleted> = {
     }
     if (message.diaryId !== "") {
       writer.uint32(26).string(message.diaryId);
-    }
-    if (message.version !== 0n) {
-      if (BigInt.asUintN(64, message.version) !== message.version) {
-        throw new globalThis.Error("value provided for field message.version of type uint64 too large");
-      }
-      writer.uint32(32).uint64(message.version);
-    }
-    if (message.deletedAt !== undefined) {
-      Timestamp.encode(message.deletedAt, writer.uint32(42).fork()).join();
     }
     return writer;
   },
@@ -905,22 +796,6 @@ export const DiaryDeleted: MessageFns<DiaryDeleted> = {
             }
 
             message.diaryId = reader.string();
-            continue;
-          }
-          case 4: {
-            if (tag !== 32) {
-              break;
-            }
-
-            message.version = reader.uint64() as bigint;
-            continue;
-          }
-          case 5: {
-            if (tag !== 42) {
-              break;
-            }
-
-            message.deletedAt = Timestamp.decode(reader, reader.uint32());
             continue;
           }
         }

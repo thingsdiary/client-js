@@ -6,33 +6,22 @@
 
 /* eslint-disable */
 import { BinaryReader, BinaryWriter } from "@bufbuild/protobuf/wire";
+import { EncryptedChange } from "./change.js";
 import { DiaryEncryptionKey } from "./diary_key.js";
-import { EncryptedData, Encryption } from "./encryption.js";
 import { Timestamp } from "./google/protobuf/timestamp.js";
 
 export const protobufPackage = "io.thingsdiary.v1";
 
 export interface EncryptedDiary {
   id: string;
-  /** @deprecated */
-  version: bigint;
   createdAt: Timestamp | undefined;
   updatedAt: Timestamp | undefined;
   encryptionKeys: DiaryEncryptionKey[];
-  encryption: Encryption | undefined;
-  details: EncryptedData | undefined;
+  change: EncryptedChange | undefined;
 }
 
 function createBaseEncryptedDiary(): EncryptedDiary {
-  return {
-    id: "",
-    version: 0n,
-    createdAt: undefined,
-    updatedAt: undefined,
-    encryptionKeys: [],
-    encryption: undefined,
-    details: undefined,
-  };
+  return { id: "", createdAt: undefined, updatedAt: undefined, encryptionKeys: [], change: undefined };
 }
 
 export const EncryptedDiary: MessageFns<EncryptedDiary> = {
@@ -40,26 +29,17 @@ export const EncryptedDiary: MessageFns<EncryptedDiary> = {
     if (message.id !== "") {
       writer.uint32(10).string(message.id);
     }
-    if (message.version !== 0n) {
-      if (BigInt.asUintN(64, message.version) !== message.version) {
-        throw new globalThis.Error("value provided for field message.version of type uint64 too large");
-      }
-      writer.uint32(16).uint64(message.version);
-    }
     if (message.createdAt !== undefined) {
-      Timestamp.encode(message.createdAt, writer.uint32(26).fork()).join();
+      Timestamp.encode(message.createdAt, writer.uint32(18).fork()).join();
     }
     if (message.updatedAt !== undefined) {
-      Timestamp.encode(message.updatedAt, writer.uint32(34).fork()).join();
+      Timestamp.encode(message.updatedAt, writer.uint32(26).fork()).join();
     }
     for (const v of message.encryptionKeys) {
-      DiaryEncryptionKey.encode(v!, writer.uint32(42).fork()).join();
+      DiaryEncryptionKey.encode(v!, writer.uint32(34).fork()).join();
     }
-    if (message.encryption !== undefined) {
-      Encryption.encode(message.encryption, writer.uint32(50).fork()).join();
-    }
-    if (message.details !== undefined) {
-      EncryptedData.encode(message.details, writer.uint32(58).fork()).join();
+    if (message.change !== undefined) {
+      EncryptedChange.encode(message.change, writer.uint32(42).fork()).join();
     }
     return writer;
   },
@@ -86,11 +66,11 @@ export const EncryptedDiary: MessageFns<EncryptedDiary> = {
             continue;
           }
           case 2: {
-            if (tag !== 16) {
+            if (tag !== 18) {
               break;
             }
 
-            message.version = reader.uint64() as bigint;
+            message.createdAt = Timestamp.decode(reader, reader.uint32());
             continue;
           }
           case 3: {
@@ -98,7 +78,7 @@ export const EncryptedDiary: MessageFns<EncryptedDiary> = {
               break;
             }
 
-            message.createdAt = Timestamp.decode(reader, reader.uint32());
+            message.updatedAt = Timestamp.decode(reader, reader.uint32());
             continue;
           }
           case 4: {
@@ -106,7 +86,7 @@ export const EncryptedDiary: MessageFns<EncryptedDiary> = {
               break;
             }
 
-            message.updatedAt = Timestamp.decode(reader, reader.uint32());
+            message.encryptionKeys.push(DiaryEncryptionKey.decode(reader, reader.uint32()));
             continue;
           }
           case 5: {
@@ -114,23 +94,7 @@ export const EncryptedDiary: MessageFns<EncryptedDiary> = {
               break;
             }
 
-            message.encryptionKeys.push(DiaryEncryptionKey.decode(reader, reader.uint32()));
-            continue;
-          }
-          case 6: {
-            if (tag !== 50) {
-              break;
-            }
-
-            message.encryption = Encryption.decode(reader, reader.uint32());
-            continue;
-          }
-          case 7: {
-            if (tag !== 58) {
-              break;
-            }
-
-            message.details = EncryptedData.decode(reader, reader.uint32());
+            message.change = EncryptedChange.decode(reader, reader.uint32());
             continue;
           }
         }
