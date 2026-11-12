@@ -19,9 +19,9 @@ export interface EncryptedTopic {
   updatedAt: Timestamp | undefined;
   deletedAt?: Timestamp | undefined;
   removedAt?: Timestamp | undefined;
+  defaultTemplateId?: string | undefined;
   encryption: Encryption | undefined;
   details: EncryptedData | undefined;
-  defaultTemplateId?: string | undefined;
 }
 
 function createBaseEncryptedTopic(): EncryptedTopic {
@@ -33,9 +33,9 @@ function createBaseEncryptedTopic(): EncryptedTopic {
     updatedAt: undefined,
     deletedAt: undefined,
     removedAt: undefined,
+    defaultTemplateId: undefined,
     encryption: undefined,
     details: undefined,
-    defaultTemplateId: undefined,
   };
 }
 
@@ -65,14 +65,14 @@ export const EncryptedTopic: MessageFns<EncryptedTopic> = {
     if (message.removedAt !== undefined) {
       Timestamp.encode(message.removedAt, writer.uint32(58).fork()).join();
     }
+    if (message.defaultTemplateId !== undefined) {
+      writer.uint32(66).string(message.defaultTemplateId);
+    }
     if (message.encryption !== undefined) {
-      Encryption.encode(message.encryption, writer.uint32(66).fork()).join();
+      Encryption.encode(message.encryption, writer.uint32(74).fork()).join();
     }
     if (message.details !== undefined) {
-      EncryptedData.encode(message.details, writer.uint32(74).fork()).join();
-    }
-    if (message.defaultTemplateId !== undefined) {
-      writer.uint32(82).string(message.defaultTemplateId);
+      EncryptedData.encode(message.details, writer.uint32(82).fork()).join();
     }
     return writer;
   },
@@ -151,7 +151,7 @@ export const EncryptedTopic: MessageFns<EncryptedTopic> = {
               break;
             }
 
-            message.encryption = Encryption.decode(reader, reader.uint32());
+            message.defaultTemplateId = reader.string();
             continue;
           }
           case 9: {
@@ -159,7 +159,7 @@ export const EncryptedTopic: MessageFns<EncryptedTopic> = {
               break;
             }
 
-            message.details = EncryptedData.decode(reader, reader.uint32());
+            message.encryption = Encryption.decode(reader, reader.uint32());
             continue;
           }
           case 10: {
@@ -167,7 +167,7 @@ export const EncryptedTopic: MessageFns<EncryptedTopic> = {
               break;
             }
 
-            message.defaultTemplateId = reader.string();
+            message.details = EncryptedData.decode(reader, reader.uint32());
             continue;
           }
         }
