@@ -14,6 +14,7 @@ export const protobufPackage = "io.thingsdiary.v1";
 
 export interface EncryptedDiary {
   id: string;
+  /** @deprecated */
   version: bigint;
   createdAt: Timestamp | undefined;
   updatedAt: Timestamp | undefined;
